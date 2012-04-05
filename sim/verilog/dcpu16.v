@@ -1,0 +1,146 @@
+
+
+module dcpu16sim (/*AUTOARG*/
+   // Outputs
+   tgt, src, regSP, regO, ireg,
+   // Inputs
+   rwe, rwd, rwa
+   );
+
+   /*AUTOOUTPUT*/
+   // Beginning of automatic outputs (from unused autoinst outputs)
+   output [15:0]	ireg;			// From ut0 of dcpu16.v
+   output [15:0]	regO;			// From ut0 of dcpu16.v
+   output [15:0]	regSP;			// From ut0 of dcpu16.v
+   output [15:0]	src;			// From ut0 of dcpu16.v
+   output [15:0]	tgt;			// From ut0 of dcpu16.v
+   // End of automatics
+   /*AUTOINPUT*/
+   // Beginning of automatic inputs (from unused autoinst inputs)
+   input [2:0]		rwa;			// To ut0 of dcpu16.v
+   input [15:0]		rwd;			// To ut0 of dcpu16.v
+   input		rwe;			// To ut0 of dcpu16.v
+   // End of automatics
+   /*AUTOWIRE*/
+   // Beginning of automatic wires (for undeclared instantiated-module outputs)
+   wire [15:0]		ab_adr;			// From ut0 of dcpu16.v
+   wire [15:0]		ab_dti;			// From ur0 of fasm_dpsram_wbr.v
+   wire [15:0]		ab_dto;			// From ut0 of dcpu16.v
+   wire			ab_stb;			// From ut0 of dcpu16.v
+   wire			ab_wre;			// From ut0 of dcpu16.v
+   wire [15:0]		fs_adr;			// From ut0 of dcpu16.v
+   wire [15:0]		fs_dti;			// From ur0 of fasm_dpsram_wbr.v
+   wire [15:0]		fs_dto;			// From ut0 of dcpu16.v
+   wire			fs_stb;			// From ut0 of dcpu16.v
+   wire			fs_wre;			// From ut0 of dcpu16.v
+   // End of automatics
+   /*AUTOREG*/
+
+   reg 			rst,
+			clk;
+   reg 			fs_ack, ab_ack;
+   
+   
+   initial begin
+      $dumpfile ("dump.vcd");
+      $dumpvars (2,ut0);
+
+      
+      clk = $random;
+      rst = 1;
+
+      #50 rst = 0;
+      $readmemh ("dump.vmem", ur0.bram);      
+
+      #5000 $displayh("\n*** TIMEOUT ", $stime, " ***");
+      $finish;
+   end // initial begin
+
+   always #5 clk <= !clk;
+
+   always @(posedge clk) begin
+      fs_ack <= fs_stb & !fs_ack;
+      ab_ack <= ab_stb & !ab_ack;      
+   end
+
+
+   /* fasm_dpsram_wbr AUTO_TEMPLATE (
+    .AW(16),
+    .DW(16),
+    
+    .xclk_i(clk), 
+    .clk_i(clk),
+    
+    .xwre_i(ab_wre), 
+    .xstb_i(ab_stb), 
+    .xadr_i(ab_adr),
+    .xdat_o(ab_dti[15:0]),
+    .xdat_i(ab_dto[15:0]),
+    
+    .wre_i(fs_wre),
+    .stb_i(fs_stb),
+    .adr_i(fs_adr),
+    .dat_o(fs_dti[15:0]),
+    .dat_i(fs_dto[15:0]),
+    
+    .rst_i(rst),
+    .xrst_i(rst),
+    ) */
+   
+   fasm_dpsram_wbr
+     #(/*AUTOINSTPARAM*/
+       // Parameters
+       .AW				(16),			 // Templated
+       .DW				(16))			 // Templated
+     ur0 (/*AUTOINST*/
+	  // Outputs
+	  .dat_o			(fs_dti[15:0]),		 // Templated
+	  .xdat_o			(ab_dti[15:0]),		 // Templated
+	  // Inputs
+	  .dat_i			(fs_dto[15:0]),		 // Templated
+	  .adr_i			(fs_adr),		 // Templated
+	  .wre_i			(fs_wre),		 // Templated
+	  .stb_i			(fs_stb),		 // Templated
+	  .rst_i			(rst),			 // Templated
+	  .clk_i			(clk),			 // Templated
+	  .xdat_i			(ab_dto[15:0]),		 // Templated
+	  .xadr_i			(ab_adr),		 // Templated
+	  .xwre_i			(ab_wre),		 // Templated
+	  .xstb_i			(ab_stb),		 // Templated
+	  .xrst_i			(rst),			 // Templated
+	  .xclk_i			(clk));			 // Templated
+
+   
+   dcpu16
+     ut0 (/*AUTOINST*/
+	  // Outputs
+	  .ab_adr			(ab_adr[15:0]),
+	  .ab_dto			(ab_dto[15:0]),
+	  .ab_stb			(ab_stb),
+	  .ab_wre			(ab_wre),
+	  .fs_adr			(fs_adr[15:0]),
+	  .fs_dto			(fs_dto[15:0]),
+	  .fs_stb			(fs_stb),
+	  .fs_wre			(fs_wre),
+	  .ireg				(ireg[15:0]),
+	  .regO				(regO[15:0]),
+	  .regSP			(regSP[15:0]),
+	  .src				(src[15:0]),
+	  .tgt				(tgt[15:0]),
+	  // Inputs
+	  .ab_ack			(ab_ack),
+	  .ab_dti			(ab_dti[15:0]),
+	  .clk				(clk),
+	  .fs_ack			(fs_ack),
+	  .fs_dti			(fs_dti[15:0]),
+	  .rst				(rst),
+	  .rwa				(rwa[2:0]),
+	  .rwd				(rwd[15:0]),
+	  .rwe				(rwe));   
+   
+endmodule // dcpu16sim
+
+// Local Variables:
+// verilog-library-directories:("." "../../rtl/verilog/")
+// verilog-library-files:("")
+// End:
