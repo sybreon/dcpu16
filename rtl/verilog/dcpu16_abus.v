@@ -25,9 +25,10 @@
 
 module dcpu16_abus (/*AUTOARG*/
    // Outputs
-   ab_adr, ab_stb, ab_ena, ab_wre, ab_dto, regSP, ab_fs, src, tgt,
+   ab_adr, ab_stb, ab_ena, ab_wre, ab_dto, regSP, regA, regB, ab_fs,
+   src, tgt,
    // Inputs
-   ab_dti, ab_ack, rrd, regPC, ea, clk, pha, rst, ena
+   ab_dti, ab_ack, rrd, regPC, regO, ea, clk, pha, rst, ena
    );
 
    // Simplified Wishbone
@@ -40,10 +41,14 @@ module dcpu16_abus (/*AUTOARG*/
    input 	 ab_ack;   
 
    // internal
-   output [15:0] regSP;   
+   output [15:0] regSP;
+   output [15:0] regA,
+		 regB;
+   
    output [15:0] ab_fs;   
    input [15:0]  rrd;
-   input [15:0]  regPC;   
+   input [15:0]  regPC;
+   input [15:0]  regO;   
    input [5:0] 	 ea;
 
    output [15:0] src,
@@ -59,6 +64,8 @@ module dcpu16_abus (/*AUTOARG*/
    reg [15:0]		ab_adr;
    reg [15:0]		ab_fs;
    reg			ab_stb;
+   reg [15:0]		regA;
+   reg [15:0]		regB;
    reg [15:0]		regSP;
    reg [15:0]		src;
    reg [15:0]		tgt;
@@ -86,25 +93,58 @@ module dcpu16_abus (/*AUTOARG*/
          0x1f: next word (literal)
     0x20-0x3f: literal value 0x00-0x1f (literal)
     */
+   reg [5:0] 		_ea;
    
    always @(posedge clk)
      if (rst) begin
 	/*AUTORESET*/
 	// Beginning of autoreset for uninitialized flops
+	_ea <= 6'h0;
 	ab_adr <= 16'h0;
 	ab_stb <= 1'h0;
+	regA <= 16'h0;
+	regB <= 16'h0;
 	// End of automatics
      end else if (ena) begin
 	case (ea[5:3])
 	  3'o1: {ab_stb, ab_adr} <= {1'b1, rrd};
 	  3'o2: {ab_stb, ab_adr} <= {1'b1, rrd + regPC};
 	  3'o3: case (ea[2:0])
+		  3'o0: {ab_stb, ab_adr} <= {1'b1, regSP};		  
+		  3'o1: {ab_stb, ab_adr} <= {1'b1, regSP};		  
+		  3'o2: {ab_stb, ab_adr} <= {1'b1, (regSP + 16'hFFFF)};		  
 		  3'o7: {ab_stb, ab_adr} <= {1'b1, regPC};		  
 		  3'o6: {ab_stb, ab_adr} <= {1'b1, regPC};		  
 		  default: {ab_stb, ab_adr} <= {1'b0, 16'hX};		  
 		endcase // case (ea[2:0])	  
 	  default: {ab_stb, ab_adr} <= {1'b0, 16'hX};	  
 	endcase // case (ea[5:3])
+
+	if (pha)
+	case (_ea[5:3])
+	  3'o0: regB <= _rrd;	  
+	  3'o3: case (_ea[2:0])
+		  3'o3: regB <= regSP;
+		  3'o4: regB <= regPC;
+		  3'o5: regB <= regO;		 
+		  default: regB <= ab_dti;		  
+		endcase // case (ea[2:0])	  
+	  default: regB <= ab_dti;		  
+	endcase // case (ea[5:3])
+	else
+	case (_ea[5:3])
+	  3'o0: regA <= _rrd;	  
+	  3'o3: case (_ea[2:0])
+		  3'o3: regA <= regSP;
+		  3'o4: regA <= regPC;
+		  3'o5: regA <= regO;		 
+		  default: regA <= ab_dti;		  
+		endcase // case (ea[2:0])	  
+	  default: regA <= ab_dti;		  
+	endcase // case (ea[5:3])
+
+	_ea <= ea;
+	
      end
 
    

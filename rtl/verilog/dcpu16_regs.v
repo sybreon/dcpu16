@@ -36,7 +36,7 @@ module dcpu16_regs (/*AUTOARG*/
 
    reg [2:0] 	 r;
 
-   assign rrd = file[r];   
+   assign rrd = file[rra];   
    
    always @(posedge clk)
      if (ena) begin

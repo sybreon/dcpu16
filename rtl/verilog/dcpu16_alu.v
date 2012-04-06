@@ -19,7 +19,7 @@ module dcpu16_alu (/*AUTOARG*/
    // Outputs
    regR, regO,
    // Inputs
-   ab_dti, rrd, opc, clk, rst, ena
+   ab_dti, rrd, opc, regA, regB, clk, pha, rst, ena
    );
 
    output [15:0] regR,
@@ -29,8 +29,12 @@ module dcpu16_alu (/*AUTOARG*/
    input [15:0]  rrd;   
    
    input [3:0] 	 opc;
+
+   input [15:0]  regA,
+		 regB;   
    
    input 	 clk,
+		 pha,
 		 rst,
 		 ena;
 
@@ -42,6 +46,9 @@ module dcpu16_alu (/*AUTOARG*/
    reg [15:0]		regO;
    reg [15:0]		regR;
    // End of automatics
+
+   assign src = regA;
+   assign tgt = regB;   
    
    always @(posedge clk)
      if (rst) begin

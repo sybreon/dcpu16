@@ -3,7 +3,7 @@ module dcpu16_ctl (/*AUTOARG*/
    // Outputs
    ireg, pha, ena, opc, rra, ea,
    // Inputs
-   fs_dti, fs_ack, fs_ena, ab_ena, ab_ack, clk, rst
+   fs_dti, ab_dti, rrd, fs_ack, fs_ena, ab_ena, ab_ack, clk, rst
    );
 
    output [15:0] ireg;   
@@ -14,15 +14,17 @@ module dcpu16_ctl (/*AUTOARG*/
    output [3:0]  opc;
    output [2:0]  rra;
    output [5:0]  ea;   
-   input [15:0]  fs_dti;
-
+   input [15:0]  fs_dti, 
+		 ab_dti;
+   input [15:0]  rrd;   
 
    input 	 fs_ack,
 		 fs_ena;
 
    input 	 ab_ena,
 		 ab_ack;   
-   
+
+   // system
    input 	 clk,
 		 rst;
 
@@ -36,7 +38,8 @@ module dcpu16_ctl (/*AUTOARG*/
    // End of automatics
 
    reg [3:0] 		_opc;   
-   reg [2:0] 		_rra;   
+   reg [2:0] 		_rra;
+   reg [15:0] 		_rrd;   
 
    wire [3:0] 		decO;
    wire [5:0] 		decA, decB;
@@ -72,7 +75,7 @@ module dcpu16_ctl (/*AUTOARG*/
 
 	rra <= (pha) ? decB[2:0] : decA[2:0];
 
-	ea <= (pha) ? decB : decA;	
+	ea <= (pha) ? decB : decA;
      end
    
    
