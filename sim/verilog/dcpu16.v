@@ -1,8 +1,23 @@
-
+/*
+ DCPU16 Verilog Implementation
+ Copyright (C) 2012 Shawn Tan <shawn.tan@sybreon.com>
+ 
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as
+ published by the Free Software Foundation, either version 3 of the
+ License, or (at your option) any later version.  This program is
+ distributed in the hope that it will be useful, but WITHOUT ANY
+ WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ for more details.
+ 
+ You should have received a copy of the GNU Lesser General Public
+ License along with this program.  If not, see
+ <http://www.gnu.org/licenses/>.  */
 
 module dcpu16sim (/*AUTOARG*/
    // Outputs
-   tgt, src, regSP, regO, ireg,
+   tgt, src, regSP, ireg,
    // Inputs
    rwe, rwd, rwa
    );
@@ -10,7 +25,6 @@ module dcpu16sim (/*AUTOARG*/
    /*AUTOOUTPUT*/
    // Beginning of automatic outputs (from unused autoinst outputs)
    output [15:0]	ireg;			// From ut0 of dcpu16.v
-   output [15:0]	regO;			// From ut0 of dcpu16.v
    output [15:0]	regSP;			// From ut0 of dcpu16.v
    output [15:0]	src;			// From ut0 of dcpu16.v
    output [15:0]	tgt;			// From ut0 of dcpu16.v
@@ -123,7 +137,6 @@ module dcpu16sim (/*AUTOARG*/
 	  .fs_stb			(fs_stb),
 	  .fs_wre			(fs_wre),
 	  .ireg				(ireg[15:0]),
-	  .regO				(regO[15:0]),
 	  .regSP			(regSP[15:0]),
 	  .src				(src[15:0]),
 	  .tgt				(tgt[15:0]),
