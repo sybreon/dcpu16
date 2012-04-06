@@ -15,10 +15,30 @@
  License along with this program.  If not, see
  <http://www.gnu.org/licenses/>.  */
 
+/*
+ 
+DCPU16 PIPELINE
+===============
+
+Consists of the following stages:
+
+- Fetch (F): fetches instructions from the FBUS.
+- Decode (D): decodes instructions.
+- Load A (A): loads operand A from ABUS.
+- Load B (B): loads operand B from ABUS.
+- Execute (X): performs the ALU operation.
+- Save A (S): saves operand A to the FBUS.
+
+FDABXS
+  FDABXS
+    FDABXS
+
+ */
+
 module dcpu16 (/*AUTOARG*/
    // Outputs
-   tgt, src, regSP, regO, ireg, fs_wre, fs_stb, fs_dto, fs_adr,
-   ab_wre, ab_stb, ab_dto, ab_adr,
+   tgt, src, regSP, ireg, fs_wre, fs_stb, fs_dto, fs_adr, ab_wre,
+   ab_stb, ab_dto, ab_adr,
    // Inputs
    rwe, rwd, rwa, rst, fs_dti, fs_ack, clk, ab_dti, ab_ack
    );
@@ -34,7 +54,6 @@ module dcpu16 (/*AUTOARG*/
    output		fs_stb;			// From f0 of dcpu16_fbus.v
    output		fs_wre;			// From f0 of dcpu16_fbus.v
    output [15:0]	ireg;			// From c0 of dcpu16_ctl.v
-   output [15:0]	regO;			// From x0 of dcpu16_alu.v
    output [15:0]	regSP;			// From a0 of dcpu16_abus.v
    output [15:0]	src;			// From a0 of dcpu16_abus.v
    output [15:0]	tgt;			// From a0 of dcpu16_abus.v
@@ -42,7 +61,7 @@ module dcpu16 (/*AUTOARG*/
    /*AUTOINPUT*/
    // Beginning of automatic inputs (from unused autoinst inputs)
    input		ab_ack;			// To c0 of dcpu16_ctl.v, ...
-   input [15:0]		ab_dti;			// To a0 of dcpu16_abus.v, ...
+   input [15:0]		ab_dti;			// To c0 of dcpu16_ctl.v, ...
    input		clk;			// To c0 of dcpu16_ctl.v, ...
    input		fs_ack;			// To c0 of dcpu16_ctl.v, ...
    input [15:0]		fs_dti;			// To c0 of dcpu16_ctl.v, ...
@@ -60,6 +79,9 @@ module dcpu16 (/*AUTOARG*/
    wire			fs_ena;			// From f0 of dcpu16_fbus.v
    wire [3:0]		opc;			// From c0 of dcpu16_ctl.v
    wire			pha;			// From c0 of dcpu16_ctl.v
+   wire [15:0]		regA;			// From a0 of dcpu16_abus.v
+   wire [15:0]		regB;			// From a0 of dcpu16_abus.v
+   wire [15:0]		regO;			// From x0 of dcpu16_alu.v
    wire [15:0]		regPC;			// From f0 of dcpu16_fbus.v
    wire [15:0]		regR;			// From x0 of dcpu16_alu.v
    wire [2:0]		rra;			// From c0 of dcpu16_ctl.v
@@ -78,6 +100,8 @@ module dcpu16 (/*AUTOARG*/
 	 .ea				(ea[5:0]),
 	 // Inputs
 	 .fs_dti			(fs_dti[15:0]),
+	 .ab_dti			(ab_dti[15:0]),
+	 .rrd				(rrd[15:0]),
 	 .fs_ack			(fs_ack),
 	 .fs_ena			(fs_ena),
 	 .ab_ena			(ab_ena),
@@ -113,6 +137,8 @@ module dcpu16 (/*AUTOARG*/
 	 .ab_wre			(ab_wre),
 	 .ab_dto			(ab_dto[15:0]),
 	 .regSP				(regSP[15:0]),
+	 .regA				(regA[15:0]),
+	 .regB				(regB[15:0]),
 	 .ab_fs				(ab_fs[15:0]),
 	 .src				(src[15:0]),
 	 .tgt				(tgt[15:0]),
@@ -121,6 +147,7 @@ module dcpu16 (/*AUTOARG*/
 	 .ab_ack			(ab_ack),
 	 .rrd				(rrd[15:0]),
 	 .regPC				(regPC[15:0]),
+	 .regO				(regO[15:0]),
 	 .ea				(ea[5:0]),
 	 .clk				(clk),
 	 .pha				(pha),
@@ -136,7 +163,10 @@ module dcpu16 (/*AUTOARG*/
 	 .ab_dti			(ab_dti[15:0]),
 	 .rrd				(rrd[15:0]),
 	 .opc				(opc[3:0]),
+	 .regA				(regA[15:0]),
+	 .regB				(regB[15:0]),
 	 .clk				(clk),
+	 .pha				(pha),
 	 .rst				(rst),
 	 .ena				(ena));
    

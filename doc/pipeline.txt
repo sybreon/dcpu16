@@ -1,0 +1,15 @@
+DCPU16 PIPELINE
+===============
+
+Consists of the following stages:
+
+- Fetch (F): fetches instructions from the FBUS.
+- Decode (D): decodes instructions.
+- Load A (A): loads operand A from ABUS.
+- Load B (B): loads operand B from ABUS.
+- Execute (X): performs the ALU operation.
+- Save A (S): saves operand A to the FBUS.
+
+FDABXS
+  FDABXS
+    FDABXS
