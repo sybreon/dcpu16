@@ -24,29 +24,29 @@ module dcpu16sim (/*AUTOARG*/
 
    /*AUTOOUTPUT*/
    // Beginning of automatic outputs (from unused autoinst outputs)
-   output [15:0]	ireg;			// From ut0 of dcpu16.v
-   output [15:0]	regSP;			// From ut0 of dcpu16.v
-   output [15:0]	src;			// From ut0 of dcpu16.v
-   output [15:0]	tgt;			// From ut0 of dcpu16.v
+   output [15:0]	ireg;			// From ut0 of dcpu16_cpu.v
+   output [15:0]	regSP;			// From ut0 of dcpu16_cpu.v
+   output [15:0]	src;			// From ut0 of dcpu16_cpu.v
+   output [15:0]	tgt;			// From ut0 of dcpu16_cpu.v
    // End of automatics
    /*AUTOINPUT*/
    // Beginning of automatic inputs (from unused autoinst inputs)
-   input [2:0]		rwa;			// To ut0 of dcpu16.v
-   input [15:0]		rwd;			// To ut0 of dcpu16.v
-   input		rwe;			// To ut0 of dcpu16.v
+   input [2:0]		rwa;			// To ut0 of dcpu16_cpu.v
+   input [15:0]		rwd;			// To ut0 of dcpu16_cpu.v
+   input		rwe;			// To ut0 of dcpu16_cpu.v
    // End of automatics
    /*AUTOWIRE*/
    // Beginning of automatic wires (for undeclared instantiated-module outputs)
-   wire [15:0]		ab_adr;			// From ut0 of dcpu16.v
+   wire [15:0]		ab_adr;			// From ut0 of dcpu16_cpu.v
    wire [15:0]		ab_dti;			// From ur0 of fasm_dpsram_wbr.v
-   wire [15:0]		ab_dto;			// From ut0 of dcpu16.v
-   wire			ab_stb;			// From ut0 of dcpu16.v
-   wire			ab_wre;			// From ut0 of dcpu16.v
-   wire [15:0]		fs_adr;			// From ut0 of dcpu16.v
+   wire [15:0]		ab_dto;			// From ut0 of dcpu16_cpu.v
+   wire			ab_stb;			// From ut0 of dcpu16_cpu.v
+   wire			ab_wre;			// From ut0 of dcpu16_cpu.v
+   wire [15:0]		fs_adr;			// From ut0 of dcpu16_cpu.v
    wire [15:0]		fs_dti;			// From ur0 of fasm_dpsram_wbr.v
-   wire [15:0]		fs_dto;			// From ut0 of dcpu16.v
-   wire			fs_stb;			// From ut0 of dcpu16.v
-   wire			fs_wre;			// From ut0 of dcpu16.v
+   wire [15:0]		fs_dto;			// From ut0 of dcpu16_cpu.v
+   wire			fs_stb;			// From ut0 of dcpu16_cpu.v
+   wire			fs_wre;			// From ut0 of dcpu16_cpu.v
    // End of automatics
    /*AUTOREG*/
 
@@ -125,7 +125,7 @@ module dcpu16sim (/*AUTOARG*/
 	  .xclk_i			(clk));			 // Templated
 
    
-   dcpu16
+   dcpu16_cpu
      ut0 (/*AUTOINST*/
 	  // Outputs
 	  .ab_adr			(ab_adr[15:0]),

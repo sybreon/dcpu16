@@ -35,7 +35,7 @@ FDABXS
 
  */
 
-module dcpu16 (/*AUTOARG*/
+module dcpu16_cpu (/*AUTOARG*/
    // Outputs
    tgt, src, regSP, ireg, fs_wre, fs_stb, fs_dto, fs_adr, ab_wre,
    ab_stb, ab_dto, ab_adr,
