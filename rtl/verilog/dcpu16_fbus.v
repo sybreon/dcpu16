@@ -26,9 +26,9 @@
 
 module dcpu16_fbus (/*AUTOARG*/
    // Outputs
-   fs_adr, fs_stb, fs_wre, fs_dto, regPC, fs_ena,
+   fs_adr, fs_dto, regPC, fs_ena,
    // Inputs
-   fs_dti, fs_ack, ab_fs, regR, clk, pha, rst, ena
+   fs_dti, fs_ack, skp, ab_fs, regR, ireg, clk, pha, rst, ena
    );
 
    // Simplified Wishbone
@@ -41,9 +41,11 @@ module dcpu16_fbus (/*AUTOARG*/
 
    // internal
    output [15:0] regPC; 
-   output 	 fs_ena; 	 
+   output 	 fs_ena;
+   input 	 skp;   
    input [15:0]  ab_fs;
    input [15:0]  regR;
+   input [15:0]  ireg;   
    
    input 	 clk,
 		 pha,
@@ -53,11 +55,18 @@ module dcpu16_fbus (/*AUTOARG*/
    /*AUTOREG*/
    // Beginning of automatic regs (for this module's undeclared outputs)
    reg [15:0]		fs_adr;
-   reg			fs_stb;
-   reg			fs_wre;
    reg [15:0]		regPC;
    // End of automatics
 
+   wire [3:0] 		decO;
+   wire [5:0] 		decA, decB;
+     
+   assign {decB, decA, decO} = ireg;   
+
+   wire 		skpA, skpB;
+   assign skpA = (decA[5:3] == 3'o2) | (decA[5:1] == 5'h0F);
+   assign skpB = (decB[5:3] == 3'o2) | (decB[5:1] == 5'h0F); 
+   
    assign fs_ena = fs_stb;   
    assign fs_dto = regR; // data write from ALU pass-thru   
    
@@ -82,7 +91,7 @@ module dcpu16_fbus (/*AUTOARG*/
 	regPC <= 16'h0;
 	// End of automatics
      end else if (ena) begin
-	if (pha)
+	if ((pha & !skpA & !skpB) | (!pha & skpB))
 	  regPC <= regPC + 1;	
      end
    

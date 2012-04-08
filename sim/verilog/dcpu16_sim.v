@@ -17,12 +17,11 @@
 
 module dcpu16sim (/*AUTOARG*/
    // Outputs
-   tgt, src, regSP, ireg
+   tgt, src, regSP
    );
 
    /*AUTOOUTPUT*/
    // Beginning of automatic outputs (from unused autoinst outputs)
-   output [15:0]	ireg;			// From ut0 of dcpu16_cpu.v
    output [15:0]	regSP;			// From ut0 of dcpu16_cpu.v
    output [15:0]	src;			// From ut0 of dcpu16_cpu.v
    output [15:0]	tgt;			// From ut0 of dcpu16_cpu.v
@@ -129,7 +128,6 @@ module dcpu16sim (/*AUTOARG*/
 	  .fs_dto			(fs_dto[15:0]),
 	  .fs_stb			(fs_stb),
 	  .fs_wre			(fs_wre),
-	  .ireg				(ireg[15:0]),
 	  .regSP			(regSP[15:0]),
 	  .src				(src[15:0]),
 	  .tgt				(tgt[15:0]),

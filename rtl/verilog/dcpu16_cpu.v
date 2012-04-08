@@ -37,8 +37,8 @@ FDABXS
 
 module dcpu16_cpu (/*AUTOARG*/
    // Outputs
-   tgt, src, regSP, ireg, fs_wre, fs_stb, fs_dto, fs_adr, ab_wre,
-   ab_stb, ab_dto, ab_adr,
+   tgt, src, regSP, fs_wre, fs_stb, fs_dto, fs_adr, ab_wre, ab_stb,
+   ab_dto, ab_adr,
    // Inputs
    rst, fs_dti, fs_ack, clk, ab_dti, ab_ack
    );
@@ -53,7 +53,6 @@ module dcpu16_cpu (/*AUTOARG*/
    output [15:0]	fs_dto;			// From f0 of dcpu16_fbus.v
    output		fs_stb;			// From f0 of dcpu16_fbus.v
    output		fs_wre;			// From f0 of dcpu16_fbus.v
-   output [15:0]	ireg;			// From c0 of dcpu16_ctl.v
    output [15:0]	regSP;			// From a0 of dcpu16_abus.v
    output [15:0]	src;			// From a0 of dcpu16_abus.v
    output [15:0]	tgt;			// From a0 of dcpu16_abus.v
@@ -74,6 +73,7 @@ module dcpu16_cpu (/*AUTOARG*/
    wire [5:0]		ea;			// From c0 of dcpu16_ctl.v
    wire			ena;			// From c0 of dcpu16_ctl.v
    wire			fs_ena;			// From f0 of dcpu16_fbus.v
+   wire [15:0]		ireg;			// From c0 of dcpu16_ctl.v
    wire [3:0]		opc;			// From c0 of dcpu16_ctl.v
    wire			pha;			// From c0 of dcpu16_ctl.v
    wire [15:0]		regA;			// From a0 of dcpu16_abus.v
@@ -86,6 +86,7 @@ module dcpu16_cpu (/*AUTOARG*/
    wire [2:0]		rwa;			// From c0 of dcpu16_ctl.v
    wire [15:0]		rwd;			// From x0 of dcpu16_alu.v
    wire			rwe;			// From c0 of dcpu16_ctl.v
+   wire			skp;			// From c0 of dcpu16_ctl.v
    // End of automatics
    /*AUTOREG*/
 
@@ -99,12 +100,13 @@ module dcpu16_cpu (/*AUTOARG*/
 	 .rra				(rra[2:0]),
 	 .rwa				(rwa[2:0]),
 	 .rwe				(rwe),
+	 .skp				(skp),
 	 .ea				(ea[5:0]),
 	 // Inputs
 	 .fs_dti			(fs_dti[15:0]),
 	 .ab_dti			(ab_dti[15:0]),
-	 .fs_ack			(fs_ack),
 	 .rrd				(rrd[15:0]),
+	 .fs_ack			(fs_ack),
 	 .fs_ena			(fs_ena),
 	 .ab_ena			(ab_ena),
 	 .ab_ack			(ab_ack),
@@ -123,8 +125,10 @@ module dcpu16_cpu (/*AUTOARG*/
 	 // Inputs
 	 .fs_dti			(fs_dti[15:0]),
 	 .fs_ack			(fs_ack),
+	 .skp				(skp),
 	 .ab_fs				(ab_fs[15:0]),
 	 .regR				(regR[15:0]),
+	 .ireg				(ireg[15:0]),
 	 .clk				(clk),
 	 .pha				(pha),
 	 .rst				(rst),

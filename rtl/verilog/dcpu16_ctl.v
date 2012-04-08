@@ -1,7 +1,7 @@
 
 module dcpu16_ctl (/*AUTOARG*/
    // Outputs
-   ireg, pha, ena, opc, rra, rwa, rwe, ea,
+   ireg, pha, ena, opc, rra, rwa, rwe, skp, ea,
    // Inputs
    fs_dti, ab_dti, rrd, fs_ack, fs_ena, ab_ena, ab_ack, clk, rst
    );
@@ -14,7 +14,8 @@ module dcpu16_ctl (/*AUTOARG*/
    output [3:0]  opc;
    output [2:0]  rra,
 		 rwa;
-   output 	 rwe;   
+   output 	 rwe;
+   output 	 skp;   
    output [5:0]  ea;   
    input [15:0]  fs_dti, 
 		 ab_dti;
@@ -75,7 +76,8 @@ module dcpu16_ctl (/*AUTOARG*/
 	// Beginning of autoreset for uninitialized flops
 	ireg <= 16'h0;
 	// End of automatics
-     end else if (!pha) begin
+     end else if (ena) begin
+	if (!pha)
 	case ({skp,fs_ack})
 	  default: ireg <= 16'h0;
 	  2'b01: ireg <= fs_dti;
