@@ -17,9 +17,7 @@
 
 module dcpu16sim (/*AUTOARG*/
    // Outputs
-   tgt, src, regSP, ireg,
-   // Inputs
-   rwe, rwd, rwa
+   tgt, src, regSP, ireg
    );
 
    /*AUTOOUTPUT*/
@@ -30,11 +28,6 @@ module dcpu16sim (/*AUTOARG*/
    output [15:0]	tgt;			// From ut0 of dcpu16_cpu.v
    // End of automatics
    /*AUTOINPUT*/
-   // Beginning of automatic inputs (from unused autoinst inputs)
-   input [2:0]		rwa;			// To ut0 of dcpu16_cpu.v
-   input [15:0]		rwd;			// To ut0 of dcpu16_cpu.v
-   input		rwe;			// To ut0 of dcpu16_cpu.v
-   // End of automatics
    /*AUTOWIRE*/
    // Beginning of automatic wires (for undeclared instantiated-module outputs)
    wire [15:0]		ab_adr;			// From ut0 of dcpu16_cpu.v
@@ -146,10 +139,14 @@ module dcpu16sim (/*AUTOARG*/
 	  .clk				(clk),
 	  .fs_ack			(fs_ack),
 	  .fs_dti			(fs_dti[15:0]),
-	  .rst				(rst),
-	  .rwa				(rwa[2:0]),
-	  .rwd				(rwd[15:0]),
-	  .rwe				(rwe));   
+	  .rst				(rst));   
+
+   integer i;
+   initial begin
+      for (i=0; i<8; i=i+1) begin
+	 ut0.r0.file[i] <= $random;	 
+      end
+   end
    
 endmodule // dcpu16sim
 

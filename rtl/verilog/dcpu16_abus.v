@@ -25,8 +25,7 @@
 
 module dcpu16_abus (/*AUTOARG*/
    // Outputs
-   ab_adr, ab_stb, ab_ena, ab_wre, ab_dto, regSP, regA, regB, ab_fs,
-   src, tgt,
+   ab_adr, ab_stb, ab_ena, ab_wre, regSP, regA, regB, ab_fs, src, tgt,
    // Inputs
    ab_dti, ab_ack, rrd, regPC, regO, ea, clk, pha, rst, ena
    );
@@ -36,7 +35,7 @@ module dcpu16_abus (/*AUTOARG*/
    output 	 ab_stb,
 		 ab_ena,
 		 ab_wre;
-   output [15:0] ab_dto;  
+   //output [15:0] ab_dto;  
    input [15:0]  ab_dti;
    input 	 ab_ack;   
 

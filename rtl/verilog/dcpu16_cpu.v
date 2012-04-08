@@ -40,13 +40,13 @@ module dcpu16_cpu (/*AUTOARG*/
    tgt, src, regSP, ireg, fs_wre, fs_stb, fs_dto, fs_adr, ab_wre,
    ab_stb, ab_dto, ab_adr,
    // Inputs
-   rwe, rwd, rwa, rst, fs_dti, fs_ack, clk, ab_dti, ab_ack
+   rst, fs_dti, fs_ack, clk, ab_dti, ab_ack
    );
 
    /*AUTOOUTPUT*/
    // Beginning of automatic outputs (from unused autoinst outputs)
    output [15:0]	ab_adr;			// From a0 of dcpu16_abus.v
-   output [15:0]	ab_dto;			// From a0 of dcpu16_abus.v
+   output [15:0]	ab_dto;			// From x0 of dcpu16_alu.v
    output		ab_stb;			// From a0 of dcpu16_abus.v
    output		ab_wre;			// From a0 of dcpu16_abus.v
    output [15:0]	fs_adr;			// From f0 of dcpu16_fbus.v
@@ -66,9 +66,6 @@ module dcpu16_cpu (/*AUTOARG*/
    input		fs_ack;			// To c0 of dcpu16_ctl.v, ...
    input [15:0]		fs_dti;			// To c0 of dcpu16_ctl.v, ...
    input		rst;			// To c0 of dcpu16_ctl.v, ...
-   input [2:0]		rwa;			// To r0 of dcpu16_regs.v
-   input [15:0]		rwd;			// To r0 of dcpu16_regs.v
-   input		rwe;			// To r0 of dcpu16_regs.v
    // End of automatics
    /*AUTOWIRE*/
    // Beginning of automatic wires (for undeclared instantiated-module outputs)
@@ -86,6 +83,9 @@ module dcpu16_cpu (/*AUTOARG*/
    wire [15:0]		regR;			// From x0 of dcpu16_alu.v
    wire [2:0]		rra;			// From c0 of dcpu16_ctl.v
    wire [15:0]		rrd;			// From r0 of dcpu16_regs.v
+   wire [2:0]		rwa;			// From c0 of dcpu16_ctl.v
+   wire [15:0]		rwd;			// From x0 of dcpu16_alu.v
+   wire			rwe;			// From c0 of dcpu16_ctl.v
    // End of automatics
    /*AUTOREG*/
 
@@ -97,12 +97,14 @@ module dcpu16_cpu (/*AUTOARG*/
 	 .ena				(ena),
 	 .opc				(opc[3:0]),
 	 .rra				(rra[2:0]),
+	 .rwa				(rwa[2:0]),
+	 .rwe				(rwe),
 	 .ea				(ea[5:0]),
 	 // Inputs
 	 .fs_dti			(fs_dti[15:0]),
 	 .ab_dti			(ab_dti[15:0]),
-	 .rrd				(rrd[15:0]),
 	 .fs_ack			(fs_ack),
+	 .rrd				(rrd[15:0]),
 	 .fs_ena			(fs_ena),
 	 .ab_ena			(ab_ena),
 	 .ab_ack			(ab_ack),
@@ -135,7 +137,6 @@ module dcpu16_cpu (/*AUTOARG*/
 	 .ab_stb			(ab_stb),
 	 .ab_ena			(ab_ena),
 	 .ab_wre			(ab_wre),
-	 .ab_dto			(ab_dto[15:0]),
 	 .regSP				(regSP[15:0]),
 	 .regA				(regA[15:0]),
 	 .regB				(regB[15:0]),
@@ -157,6 +158,8 @@ module dcpu16_cpu (/*AUTOARG*/
    dcpu16_alu
      x0 (/*AUTOINST*/
 	 // Outputs
+	 .ab_dto			(ab_dto[15:0]),
+	 .rwd				(rwd[15:0]),
 	 .regR				(regR[15:0]),
 	 .regO				(regO[15:0]),
 	 // Inputs
