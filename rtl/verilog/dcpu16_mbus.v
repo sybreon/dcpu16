@@ -112,6 +112,14 @@ module dcpu16_mbus (/*AUTOARG*/
    wire 		Anwl = (decA[5:0] == 6'h1F);
    wire 		Bnwl = (decB[5:0] == 6'h1F);   
 
+   wire 		Arsp = (decA[5:0] == 6'h1B);
+   wire 		Arpc = (decA[5:0] == 6'h1C);
+   wire 		Arro = (decA[5:0] == 6'h1D);
+   wire 		Brsp = (decB[5:0] == 6'h1B);
+   wire 		Brpc = (decB[5:0] == 6'h1C);
+   wire 		Brro = (decB[5:0] == 6'h1D);
+   
+   
    wire 		incA = Anwr | Anwi | Anwl;
    wire 		incB = Bnwr | Bnwi | Bnwl;   
 
@@ -264,7 +272,7 @@ module dcpu16_mbus (/*AUTOARG*/
 
      end
    
-   // REG-A
+   // REG-A/REG-B
    always @(posedge clk)
      if (rst) begin
 	/*AUTORESET*/
@@ -274,7 +282,11 @@ module dcpu16_mbus (/*AUTOARG*/
 	// End of automatics
      end else if (ena) begin
 	case (pha)
-	  2'o0: regA <= (g_stb) ? g_dti : regA;	     
+	  2'o0: regA <= (g_stb) ? g_dti :
+			(Arsp) ? regSP :
+			(Arpc) ? regPC :
+			(Arro) ? regO :
+			regA;	     
 	  2'o2: regA <= (g_stb) ? g_dti :
 			(_rd) ? rrd :
 			regA;	     
@@ -282,7 +294,11 @@ module dcpu16_mbus (/*AUTOARG*/
 	endcase // case (pha)
 	
 	case (pha)
-	  2'o1: regB <= (g_stb) ? g_dti : regB;	  
+	  2'o1: regB <= (g_stb) ? g_dti :
+			(Brsp) ? regSP :
+			(Brpc) ? regPC :
+			(Brro) ? regO :
+			regB;	  
 	  2'o3: regB <= (g_stb) ? g_dti :
 			(_rd) ? rrd :
 			regB;
