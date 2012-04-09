@@ -17,34 +17,43 @@
 
 module dcpu16sim (/*AUTOARG*/
    // Outputs
-   tgt, src, regSP
+   tgt, src, regSP, regR, regPC, fs_dto, ea,
+   // Inputs
+   g_dto, f_dto, ab_dti
    );
 
    /*AUTOOUTPUT*/
    // Beginning of automatic outputs (from unused autoinst outputs)
+   output [5:0]		ea;			// From ut0 of dcpu16_cpu.v
+   output [15:0]	fs_dto;			// From ut0 of dcpu16_cpu.v
+   output [15:0]	regPC;			// From ut0 of dcpu16_cpu.v
+   output [15:0]	regR;			// From ut0 of dcpu16_cpu.v
    output [15:0]	regSP;			// From ut0 of dcpu16_cpu.v
    output [15:0]	src;			// From ut0 of dcpu16_cpu.v
    output [15:0]	tgt;			// From ut0 of dcpu16_cpu.v
    // End of automatics
    /*AUTOINPUT*/
+   // Beginning of automatic inputs (from unused autoinst inputs)
+   input [15:0]		ab_dti;			// To ut0 of dcpu16_cpu.v
+   input [15:0]		f_dto;			// To ur0 of fasm_dpsram_wbr.v
+   input [15:0]		g_dto;			// To ur0 of fasm_dpsram_wbr.v
+   // End of automatics
    /*AUTOWIRE*/
    // Beginning of automatic wires (for undeclared instantiated-module outputs)
-   wire [15:0]		ab_adr;			// From ut0 of dcpu16_cpu.v
-   wire [15:0]		ab_dti;			// From ur0 of fasm_dpsram_wbr.v
-   wire [15:0]		ab_dto;			// From ut0 of dcpu16_cpu.v
-   wire			ab_stb;			// From ut0 of dcpu16_cpu.v
-   wire			ab_wre;			// From ut0 of dcpu16_cpu.v
-   wire [15:0]		fs_adr;			// From ut0 of dcpu16_cpu.v
-   wire [15:0]		fs_dti;			// From ur0 of fasm_dpsram_wbr.v
-   wire [15:0]		fs_dto;			// From ut0 of dcpu16_cpu.v
-   wire			fs_stb;			// From ut0 of dcpu16_cpu.v
-   wire			fs_wre;			// From ut0 of dcpu16_cpu.v
+   wire [15:0]		f_adr;			// From ut0 of dcpu16_cpu.v
+   wire [15:0]		f_dti;			// From ur0 of fasm_dpsram_wbr.v
+   wire			f_stb;			// From ut0 of dcpu16_cpu.v
+   wire			f_wre;			// From ut0 of dcpu16_cpu.v
+   wire [15:0]		g_adr;			// From ut0 of dcpu16_cpu.v
+   wire [15:0]		g_dti;			// From ur0 of fasm_dpsram_wbr.v
+   wire			g_stb;			// From ut0 of dcpu16_cpu.v
+   wire			g_wre;			// From ut0 of dcpu16_cpu.v
    // End of automatics
    /*AUTOREG*/
 
    reg 			rst,
 			clk;
-   reg 			fs_ack, ab_ack;
+   reg 			f_ack, g_ack;
    
    
    initial begin
@@ -65,8 +74,8 @@ module dcpu16sim (/*AUTOARG*/
    always #5 clk <= !clk;
 
    always @(posedge clk) begin
-      fs_ack <= fs_stb & !fs_ack;
-      ab_ack <= ab_stb & !ab_ack;      
+      f_ack <= f_stb & !f_ack;
+      g_ack <= g_stb & !g_ack;      
    end
 
 
@@ -77,17 +86,17 @@ module dcpu16sim (/*AUTOARG*/
     .xclk_i(clk), 
     .clk_i(clk),
     
-    .xwre_i(ab_wre), 
-    .xstb_i(ab_stb), 
-    .xadr_i(ab_adr),
-    .xdat_o(ab_dti[15:0]),
-    .xdat_i(ab_dto[15:0]),
+    .xwre_i(g_wre), 
+    .xstb_i(g_stb), 
+    .xadr_i(g_adr),
+    .xdat_o(g_dti[15:0]),
+    .xdat_i(g_dto[15:0]),
     
-    .wre_i(fs_wre),
-    .stb_i(fs_stb),
-    .adr_i(fs_adr),
-    .dat_o(fs_dti[15:0]),
-    .dat_i(fs_dto[15:0]),
+    .wre_i(f_wre),
+    .stb_i(f_stb),
+    .adr_i(f_adr),
+    .dat_o(f_dti[15:0]),
+    .dat_i(f_dto[15:0]),
     
     .rst_i(rst),
     .xrst_i(rst),
@@ -100,19 +109,19 @@ module dcpu16sim (/*AUTOARG*/
        .DW				(16))			 // Templated
      ur0 (/*AUTOINST*/
 	  // Outputs
-	  .dat_o			(fs_dti[15:0]),		 // Templated
-	  .xdat_o			(ab_dti[15:0]),		 // Templated
+	  .dat_o			(f_dti[15:0]),		 // Templated
+	  .xdat_o			(g_dti[15:0]),		 // Templated
 	  // Inputs
-	  .dat_i			(fs_dto[15:0]),		 // Templated
-	  .adr_i			(fs_adr),		 // Templated
-	  .wre_i			(fs_wre),		 // Templated
-	  .stb_i			(fs_stb),		 // Templated
+	  .dat_i			(f_dto[15:0]),		 // Templated
+	  .adr_i			(f_adr),		 // Templated
+	  .wre_i			(f_wre),		 // Templated
+	  .stb_i			(f_stb),		 // Templated
 	  .rst_i			(rst),			 // Templated
 	  .clk_i			(clk),			 // Templated
-	  .xdat_i			(ab_dto[15:0]),		 // Templated
-	  .xadr_i			(ab_adr),		 // Templated
-	  .xwre_i			(ab_wre),		 // Templated
-	  .xstb_i			(ab_stb),		 // Templated
+	  .xdat_i			(g_dto[15:0]),		 // Templated
+	  .xadr_i			(g_adr),		 // Templated
+	  .xwre_i			(g_wre),		 // Templated
+	  .xstb_i			(g_stb),		 // Templated
 	  .xrst_i			(rst),			 // Templated
 	  .xclk_i			(clk));			 // Templated
 
@@ -120,23 +129,26 @@ module dcpu16sim (/*AUTOARG*/
    dcpu16_cpu
      ut0 (/*AUTOINST*/
 	  // Outputs
-	  .ab_adr			(ab_adr[15:0]),
-	  .ab_dto			(ab_dto[15:0]),
-	  .ab_stb			(ab_stb),
-	  .ab_wre			(ab_wre),
-	  .fs_adr			(fs_adr[15:0]),
+	  .ea				(ea[5:0]),
+	  .f_adr			(f_adr[15:0]),
+	  .f_stb			(f_stb),
+	  .f_wre			(f_wre),
 	  .fs_dto			(fs_dto[15:0]),
-	  .fs_stb			(fs_stb),
-	  .fs_wre			(fs_wre),
+	  .g_adr			(g_adr[15:0]),
+	  .g_stb			(g_stb),
+	  .g_wre			(g_wre),
+	  .regPC			(regPC[15:0]),
+	  .regR				(regR[15:0]),
 	  .regSP			(regSP[15:0]),
 	  .src				(src[15:0]),
 	  .tgt				(tgt[15:0]),
 	  // Inputs
-	  .ab_ack			(ab_ack),
 	  .ab_dti			(ab_dti[15:0]),
 	  .clk				(clk),
-	  .fs_ack			(fs_ack),
-	  .fs_dti			(fs_dti[15:0]),
+	  .f_ack			(f_ack),
+	  .f_dti			(f_dti[15:0]),
+	  .g_ack			(g_ack),
+	  .g_dti			(g_dti[15:0]),
 	  .rst				(rst));   
 
    integer i;
