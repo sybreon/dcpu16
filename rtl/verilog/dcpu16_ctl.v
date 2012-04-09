@@ -110,7 +110,7 @@ module dcpu16_ctl (/*AUTOARG*/
 	endcase // case (pha)
 
 	case (pha)
-	  2'o0: {rwe} <= {_rwe & CC};	  
+	  2'o0: {rwe} <= _rwe & CC & (opc[3:2] != 2'o3);	  
 	  default: {rwe} <= {1'b0};	  
 	endcase // case (pha)
 	
