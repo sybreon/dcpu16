@@ -17,15 +17,12 @@
 
 module dcpu16sim (/*AUTOARG*/
    // Outputs
-   tgt, src, regSP, regR, regPC, fs_dto, ea,
-   // Inputs
-   g_dto, f_dto, ab_dti
+   tgt, src, regSP, regR, regPC, ea
    );
 
    /*AUTOOUTPUT*/
    // Beginning of automatic outputs (from unused autoinst outputs)
    output [5:0]		ea;			// From ut0 of dcpu16_cpu.v
-   output [15:0]	fs_dto;			// From ut0 of dcpu16_cpu.v
    output [15:0]	regPC;			// From ut0 of dcpu16_cpu.v
    output [15:0]	regR;			// From ut0 of dcpu16_cpu.v
    output [15:0]	regSP;			// From ut0 of dcpu16_cpu.v
@@ -33,19 +30,16 @@ module dcpu16sim (/*AUTOARG*/
    output [15:0]	tgt;			// From ut0 of dcpu16_cpu.v
    // End of automatics
    /*AUTOINPUT*/
-   // Beginning of automatic inputs (from unused autoinst inputs)
-   input [15:0]		ab_dti;			// To ut0 of dcpu16_cpu.v
-   input [15:0]		f_dto;			// To ur0 of fasm_dpsram_wbr.v
-   input [15:0]		g_dto;			// To ur0 of fasm_dpsram_wbr.v
-   // End of automatics
    /*AUTOWIRE*/
    // Beginning of automatic wires (for undeclared instantiated-module outputs)
    wire [15:0]		f_adr;			// From ut0 of dcpu16_cpu.v
    wire [15:0]		f_dti;			// From ur0 of fasm_dpsram_wbr.v
+   wire [15:0]		f_dto;			// From ut0 of dcpu16_cpu.v
    wire			f_stb;			// From ut0 of dcpu16_cpu.v
    wire			f_wre;			// From ut0 of dcpu16_cpu.v
    wire [15:0]		g_adr;			// From ut0 of dcpu16_cpu.v
    wire [15:0]		g_dti;			// From ur0 of fasm_dpsram_wbr.v
+   wire [15:0]		g_dto;			// From ut0 of dcpu16_cpu.v
    wire			g_stb;			// From ut0 of dcpu16_cpu.v
    wire			g_wre;			// From ut0 of dcpu16_cpu.v
    // End of automatics
@@ -131,10 +125,11 @@ module dcpu16sim (/*AUTOARG*/
 	  // Outputs
 	  .ea				(ea[5:0]),
 	  .f_adr			(f_adr[15:0]),
+	  .f_dto			(f_dto[15:0]),
 	  .f_stb			(f_stb),
 	  .f_wre			(f_wre),
-	  .fs_dto			(fs_dto[15:0]),
 	  .g_adr			(g_adr[15:0]),
+	  .g_dto			(g_dto[15:0]),
 	  .g_stb			(g_stb),
 	  .g_wre			(g_wre),
 	  .regPC			(regPC[15:0]),
@@ -143,7 +138,6 @@ module dcpu16sim (/*AUTOARG*/
 	  .src				(src[15:0]),
 	  .tgt				(tgt[15:0]),
 	  // Inputs
-	  .ab_dti			(ab_dti[15:0]),
 	  .clk				(clk),
 	  .f_ack			(f_ack),
 	  .f_dti			(f_dti[15:0]),

@@ -39,20 +39,21 @@ Consists of the following stages:
 
 module dcpu16_cpu (/*AUTOARG*/
    // Outputs
-   tgt, src, regSP, regR, regPC, g_wre, g_stb, g_adr, fs_dto, f_wre,
-   f_stb, f_adr, ea,
+   tgt, src, regSP, regR, regPC, g_wre, g_stb, g_dto, g_adr, f_wre,
+   f_stb, f_dto, f_adr, ea,
    // Inputs
-   rst, g_dti, g_ack, f_dti, f_ack, clk, ab_dti
+   rst, g_dti, g_ack, f_dti, f_ack, clk
    );
 
    /*AUTOOUTPUT*/
    // Beginning of automatic outputs (from unused autoinst outputs)
    output [5:0]		ea;			// From c0 of dcpu16_ctl.v
    output [15:0]	f_adr;			// From m0 of dcpu16_mbus.v
+   output [15:0]	f_dto;			// From x0 of dcpu16_alu.v
    output		f_stb;			// From m0 of dcpu16_mbus.v
    output		f_wre;			// From m0 of dcpu16_mbus.v
-   output [15:0]	fs_dto;			// From x0 of dcpu16_alu.v
    output [15:0]	g_adr;			// From m0 of dcpu16_mbus.v
+   output [15:0]	g_dto;			// From x0 of dcpu16_alu.v
    output		g_stb;			// From m0 of dcpu16_mbus.v
    output		g_wre;			// From m0 of dcpu16_mbus.v
    output [15:0]	regPC;			// From m0 of dcpu16_mbus.v
@@ -63,7 +64,6 @@ module dcpu16_cpu (/*AUTOARG*/
    // End of automatics
    /*AUTOINPUT*/
    // Beginning of automatic inputs (from unused autoinst inputs)
-   input [15:0]		ab_dti;			// To x0 of dcpu16_alu.v
    input		clk;			// To c0 of dcpu16_ctl.v, ...
    input		f_ack;			// To c0 of dcpu16_ctl.v, ...
    input [15:0]		f_dti;			// To c0 of dcpu16_ctl.v, ...
@@ -137,20 +137,19 @@ module dcpu16_cpu (/*AUTOARG*/
    dcpu16_alu
      x0 (/*AUTOINST*/
 	 // Outputs
-	 .fs_dto			(fs_dto[15:0]),
+	 .f_dto				(f_dto[15:0]),
+	 .g_dto				(g_dto[15:0]),
 	 .rwd				(rwd[15:0]),
 	 .regR				(regR[15:0]),
 	 .regO				(regO[15:0]),
 	 // Inputs
-	 .ab_dti			(ab_dti[15:0]),
-	 .rrd				(rrd[15:0]),
 	 .opc				(opc[3:0]),
 	 .regA				(regA[15:0]),
 	 .regB				(regB[15:0]),
 	 .clk				(clk),
-	 .pha				(pha),
 	 .rst				(rst),
-	 .ena				(ena));
+	 .ena				(ena),
+	 .pha				(pha[1:0]));
    
    
    dcpu16_regs
