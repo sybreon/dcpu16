@@ -3,7 +3,7 @@ module dcpu16_ctl (/*AUTOARG*/
    // Outputs
    ireg, pha, opc, rra, rwa, rwe, bra,
    // Inputs
-   wpc, f_dti, f_ack, clk, ena, rst
+   CC, wpc, f_dti, f_ack, clk, ena, rst
    );
 
    output [15:0] ireg;   
@@ -15,7 +15,8 @@ module dcpu16_ctl (/*AUTOARG*/
 		 rwa;
    output 	 rwe;
    output 	 bra;
-  
+
+   input 	 CC;   
    input 	 wpc;
    
    input [15:0]  f_dti;   
@@ -109,7 +110,7 @@ module dcpu16_ctl (/*AUTOARG*/
 	endcase // case (pha)
 
 	case (pha)
-	  2'o0: {rwa, rwe} <= {_rwa, _rwe};	  
+	  2'o0: {rwa, rwe} <= {_rwa, _rwe & CC};	  
 	  default: {rwa, rwe} <= {3'hX, 1'b0};	  
 	endcase // case (pha)
 	case (pha)

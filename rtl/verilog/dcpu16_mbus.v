@@ -26,8 +26,8 @@ module dcpu16_mbus (/*AUTOARG*/
    g_adr, g_stb, g_wre, f_adr, f_stb, f_wre, ena, wpc, regSP, regPC,
    regA, regB, src, tgt,
    // Inputs
-   g_dti, g_ack, f_dti, f_ack, bra, regR, rrd, ireg, regO, pha, clk,
-   rst
+   g_dti, g_ack, f_dti, f_ack, bra, CC, regR, rrd, ireg, regO, pha,
+   clk, rst
    );
 
    // Simplified Wishbone
@@ -53,6 +53,7 @@ module dcpu16_mbus (/*AUTOARG*/
 		 regB;
 
    input 	 bra;
+   input 	 CC;   
    input [15:0]  regR;   
    input [15:0]  rrd;
    input [15:0]  ireg;   
@@ -123,13 +124,12 @@ module dcpu16_mbus (/*AUTOARG*/
    wire 		Brsp = (decB[5:0] == 6'h1B);
    wire 		Brpc = (decB[5:0] == 6'h1C);
    wire 		Brro = (decB[5:0] == 6'h1D);
-   
-   
+
+   wire 		Asht = (decA[5]);
+   wire 		Bsht = (decB[5]);
+ 		   
    wire 		incA = Anwr | Anwi | Anwl;
-   wire 		incB = Bnwr | Bnwi | Bnwl;   
-
-
-   
+   wire 		incB = Bnwr | Bnwi | Bnwl;    
    
    // PROGRAMME COUNTER
    reg 			_rd;   
@@ -159,7 +159,7 @@ module dcpu16_mbus (/*AUTOARG*/
 	endcase // case (pha)
 
 	case (pha)
-	  2'o1: wpc <= Arpc;
+	  2'o1: wpc <= Arpc & CC;
 	  default: wpc <= wpc;	  
 	endcase // case (pha)	
      end
@@ -271,7 +271,7 @@ module dcpu16_mbus (/*AUTOARG*/
 
 	case (pha)
 	  2'o1: {f_stb,f_wre} <= 2'o2;
-	  2'o0: {f_stb,f_wre} <= {_stb, _wre};	  
+	  2'o0: {f_stb,f_wre} <= {_stb, _wre & CC};	  
 	  default: {f_stb,f_wre} <= 2'o0;	  
 	endcase // case (pha)
 
@@ -291,6 +291,7 @@ module dcpu16_mbus (/*AUTOARG*/
 			(Arsp) ? regSP :
 			(Arpc) ? regPC :
 			(Arro) ? regO :
+			(Asht) ? {11'd0,decA[4:0]} :
 			regA;	     
 	  2'o2: regA <= (g_stb) ? g_dti :
 			(_rd) ? rrd :
@@ -303,6 +304,7 @@ module dcpu16_mbus (/*AUTOARG*/
 			(Brsp) ? regSP :
 			(Brpc) ? regPC :
 			(Brro) ? regO :
+			(Bsht) ? {11'd0,decB[4:0]} :
 			regB;	  
 	  2'o3: regB <= (g_stb) ? g_dti :
 			(_rd) ? rrd :

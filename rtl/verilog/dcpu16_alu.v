@@ -17,7 +17,7 @@
 
 module dcpu16_alu (/*AUTOARG*/
    // Outputs
-   f_dto, g_dto, rwd, regR, regO,
+   f_dto, g_dto, rwd, regR, regO, CC,
    // Inputs
    regA, regB, opc, clk, rst, ena, pha
    );
@@ -28,6 +28,7 @@ module dcpu16_alu (/*AUTOARG*/
    
    output [15:0] regR,
 		 regO;
+   output 	 CC;   
    
    input [15:0]  regA,
 		 regB;   
@@ -45,6 +46,7 @@ module dcpu16_alu (/*AUTOARG*/
    
    /*AUTOREG*/
    // Beginning of automatic regs (for this module's undeclared outputs)
+   reg			CC;
    reg [15:0]		regO;
    reg [15:0]		regR;
    // End of automatics
@@ -56,13 +58,12 @@ module dcpu16_alu (/*AUTOARG*/
    
    assign src = regA;
    assign tgt = regB;   
-
-
    
    always @(posedge clk)
      if (rst) begin
 	/*AUTORESET*/
 	// Beginning of autoreset for uninitialized flops
+	CC <= 1'h0;
 	regO <= 16'h0;
 	regR <= 16'h0;
 	// End of automatics
@@ -99,10 +100,23 @@ module dcpu16_alu (/*AUTOARG*/
 	  // 0xd: IFN a, b - performs next instruction only if a!=b
 	  // 0xe: IFG a, b - performs next instruction only if a>b
 	  // 0xf: IFB a, b - performs next instruction only if (a&b)!=0	  	  
+	  //4'hC: {regO, regR} <= {regO, (src == tgt)};
+	  //4'hD: {regO, regR} <= {regO, (src != tgt)};
+	  //4'hE: {regO, regR} <= {regO, (src > tgt)};
+	  //4'hF: {regO, regR} <= {regO, |(src & tgt)};	  
 	  
-	  default: {regO, regR} <= 32'hX;
-	  
-	endcase // case (opc)	
+	  default: {regO, regR} <= {regO, regR};	  
+	endcase // case (opc)
+
+	if (pha == 2'o0)
+	case (opc)
+	  4'hC: CC <= (src == tgt);
+	  4'hD: CC <= (src != tgt);
+	  4'hE: CC <= (src > tgt);
+	  4'hF: CC <= |(src & tgt);
+	  default: CC <= 1'b1;	  
+	endcase // case (opc)
+	
      end
    
 endmodule // dcpu16_alu
