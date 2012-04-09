@@ -1,9 +1,28 @@
+/*
+ DCPU16 Verilog Implementation
+ Copyright (C) 2012 Shawn Tan <shawn.tan@sybreon.com>
+ 
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as
+ published by the Free Software Foundation, either version 3 of the
+ License, or (at your option) any later version.  This program is
+ distributed in the hope that it will be useful, but WITHOUT ANY
+ WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ for more details.
+ 
+ You should have received a copy of the GNU Lesser General Public
+ License along with this program.  If not, see
+ <http://www.gnu.org/licenses/>.  */
+
+// TODO: JSR
+// FIXME: Reg-Reg forwarding
 
 module dcpu16_ctl (/*AUTOARG*/
    // Outputs
-   ireg, pha, opc, rra, rwa, rwe, ea,
+   ireg, pha, opc, rra, rwa, rwe, bra,
    // Inputs
-   f_dti, rrd, f_ack, clk, ena, rst
+   CC, wpc, f_dti, f_ack, clk, ena, rst
    );
 
    output [15:0] ireg;   
@@ -14,12 +33,14 @@ module dcpu16_ctl (/*AUTOARG*/
    output [2:0]  rra,
 		 rwa;
    output 	 rwe;
-   output [5:0]  ea;
+   output 	 bra;
+
+   input 	 CC;   
+   input 	 wpc;
    
    input [15:0]  f_dti;   
-   input [15:0]  rrd;
    input 	 f_ack;   
-
+  
    // system
    input 	 clk,
 		 ena,
@@ -27,7 +48,7 @@ module dcpu16_ctl (/*AUTOARG*/
 
    /*AUTOREG*/
    // Beginning of automatic regs (for this module's undeclared outputs)
-   reg [5:0]		ea;
+   reg			bra;
    reg [15:0]		ireg;
    reg [3:0]		opc;
    reg [1:0]		pha;
@@ -41,7 +62,7 @@ module dcpu16_ctl (/*AUTOARG*/
    wire [3:0] 		decO;   
    assign {decB, decA, decO} = ireg;   
 
-
+   wire 		nop = 16'd1; // NOP = SET A, A   
    wire 		_skp = (decO == 4'h0);
    
    // PHASE CALCULATOR
@@ -60,21 +81,31 @@ module dcpu16_ctl (/*AUTOARG*/
      if (rst) begin
 	/*AUTORESET*/
 	// Beginning of autoreset for uninitialized flops
+	bra <= 1'h0;
 	ireg <= 16'h0;
 	opc <= 4'h0;
 	// End of automatics
      end else if (ena) begin
 	case (pha)
-	  2'o2: ireg <= f_dti; // latch instruction only on PHA2
+	  2'o2: ireg <= (wpc) ? nop : f_dti; // latch instruction only on PHA2
 	  default: ireg <= ireg;	  
 	endcase // case (pha)
 
 	case (pha)
 	  2'o2: opc <= ireg[3:0];	  
 	  default: opc <= opc;
-	endcase // case (pha)	
+	endcase // case (pha)
+
+	case (pha)
+	  2'o2: bra <= (ireg[5:0] == 5'h10);	  
+	  default: bra <= bra;	  
+	endcase // case (pha)
+	
      end
 
+   // BRANCH CONTROL
+   
+   
    // REGISTER FILE
    reg [2:0] _rwa;
    reg 	     _rwe;   
@@ -98,9 +129,15 @@ module dcpu16_ctl (/*AUTOARG*/
 	endcase // case (pha)
 
 	case (pha)
-	  2'o0: {rwa, rwe} <= {_rwa, _rwe};	  
-	  default: {rwa, rwe} <= {3'hX, 1'b0};	  
+	  2'o0: {rwe} <= _rwe & CC & (opc[3:2] != 2'o3);	  
+	  default: {rwe} <= {1'b0};	  
 	endcase // case (pha)
+	
+	case (pha)
+	  2'o1: {rwa} <= {_rwa};	  
+	  default: {rwa} <= {rwa};	  
+	endcase // case (pha)
+	
 	case (pha)
 	  2'o0: begin
 	     _rwa <= decA[2:0];
