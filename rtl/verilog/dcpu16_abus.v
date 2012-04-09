@@ -25,10 +25,11 @@
 
 module dcpu16_abus (/*AUTOARG*/
    // Outputs
-   ab_adr, ab_stb, ab_ena, ab_wre, ab_dto, regSP, regA, regB, ab_fs,
-   src, tgt,
+   ab_adr, ab_stb, ab_ena, ab_wre, ab_dto, fs_adr, fs_stb, fs_ena,
+   fs_wre, regSP, regPC, regA, regB, src, tgt,
    // Inputs
-   ab_dti, ab_ack, rrd, regPC, regO, ea, clk, pha, rst, ena
+   ab_dti, ab_ack, fs_dti, fs_ack, rrd, ireg, regO, ea, clk, pha, rst,
+   ena
    );
 
    // Simplified Wishbone
@@ -40,14 +41,24 @@ module dcpu16_abus (/*AUTOARG*/
    input [15:0]  ab_dti;
    input 	 ab_ack;   
 
+   // Simplified Wishbone
+   output [15:0] fs_adr;
+   output 	 fs_stb,
+		 fs_ena,
+		 fs_wre;
+   //output [15:0] fs_dto;  
+   input [15:0]  fs_dti;
+   input 	 fs_ack;   
+
+   
    // internal
-   output [15:0] regSP;
+   output [15:0] regSP,
+		 regPC;
    output [15:0] regA,
 		 regB;
    
-   output [15:0] ab_fs;   
    input [15:0]  rrd;
-   input [15:0]  regPC;
+   input [15:0]  ireg;   
    input [15:0]  regO;   
    input [5:0] 	 ea;
 
@@ -62,10 +73,13 @@ module dcpu16_abus (/*AUTOARG*/
    /*AUTOREG*/
    // Beginning of automatic regs (for this module's undeclared outputs)
    reg [15:0]		ab_adr;
-   reg [15:0]		ab_fs;
    reg			ab_stb;
+   reg [15:0]		fs_adr;
+   reg			fs_stb;
+   reg			fs_wre;
    reg [15:0]		regA;
    reg [15:0]		regB;
+   reg [15:0]		regPC;
    reg [15:0]		regSP;
    reg [15:0]		src;
    reg [15:0]		tgt;
@@ -77,6 +91,7 @@ module dcpu16_abus (/*AUTOARG*/
    assign ab_wre = 1'b0;
    assign ab_dto = 16'hX;   
    assign ab_ena = ab_stb;
+   assign fs_ena = fs_stb;   
    
    // calculator
    /*
@@ -149,24 +164,60 @@ module dcpu16_abus (/*AUTOARG*/
 
    
    // pass-thru
-   always @(posedge clk)
-     if (rst) begin
-	/*AUTORESET*/
-	// Beginning of autoreset for uninitialized flops
-	ab_fs <= 16'h0;
-	// End of automatics
-     end else if (!pha) begin
-	ab_fs <= ab_adr;	
-     end
+   reg _adr;
+   reg _wre;
+   reg _stb;
    
    always @(posedge clk)
      if (rst) begin
 	/*AUTORESET*/
 	// Beginning of autoreset for uninitialized flops
+	_adr <= 1'h0;
+	_stb <= 1'h0;
+	_wre <= 1'h0;
+	// End of automatics
+     end else if (!pha) begin
+	_adr <= ab_adr;
+	_stb <= ab_stb;
+	_wre <= ab_stb;	
+     end
+
+   always @(posedge clk)
+     if (rst) begin
+	/*AUTORESET*/
+	// Beginning of autoreset for uninitialized flops
 	_rrd <= 16'h0;
+	fs_adr <= 16'h0;
+	fs_stb <= 1'h0;
+	fs_wre <= 1'h0;
 	// End of automatics
      end else if (ena) begin
+	fs_adr <= (pha) ? regPC : _adr;
+	fs_stb <= (pha) ? 1'b1 : _stb;
+	fs_wre <= (pha) ? 1'b0 : _wre;	
 	_rrd <= rrd;	
+     end
+
+
+   wire [3:0] 		decO;
+   wire [5:0] 		decA, decB;
+     
+   assign {decB, decA, decO} = ireg;   
+
+   wire 		skpA, skpB;   
+   assign skpA = (decA[5:3] == 3'o2) | (decA[5:1] == 5'b01111);
+   assign skpB = (decB[5:3] == 3'o2) | (decB[5:1] == 5'h0F); 
+   
+   always @(posedge clk)
+     if (rst) begin
+	/*AUTORESET*/
+	// Beginning of autoreset for uninitialized flops
+	regPC <= 16'h0;
+	// End of automatics
+     end else if (ena) begin
+//	if ((pha & !skpB & !skpA) | (!pha & !skpB))
+	if ((pha & !skpB & !skpA) | (!pha & skpB))
+	  regPC <= regPC + 1;	
      end
    
    

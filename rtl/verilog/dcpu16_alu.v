@@ -17,11 +17,14 @@
 
 module dcpu16_alu (/*AUTOARG*/
    // Outputs
-   regR, regO,
+   fs_dto, rwd, regR, regO,
    // Inputs
    ab_dti, rrd, opc, regA, regB, clk, pha, rst, ena
    );
 
+   output [15:0] fs_dto,
+		 rwd;
+   
    output [15:0] regR,
 		 regO;
 
@@ -47,6 +50,9 @@ module dcpu16_alu (/*AUTOARG*/
    reg [15:0]		regR;
    // End of automatics
 
+   assign fs_dto = regR;
+   assign rwd = regR;   
+   
    assign src = regA;
    assign tgt = regB;   
    

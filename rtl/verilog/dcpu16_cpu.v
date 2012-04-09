@@ -35,12 +35,12 @@ FDABXS
 
  */
 
-module dcpu16 (/*AUTOARG*/
+module dcpu16_cpu (/*AUTOARG*/
    // Outputs
-   tgt, src, regSP, ireg, fs_wre, fs_stb, fs_dto, fs_adr, ab_wre,
-   ab_stb, ab_dto, ab_adr,
+   tgt, src, skp, regSP, regR, regPC, fs_wre, fs_stb, fs_dto, fs_adr,
+   ab_wre, ab_stb, ab_dto, ab_adr,
    // Inputs
-   rwe, rwd, rwa, rst, fs_dti, fs_ack, clk, ab_dti, ab_ack
+   rst, fs_dti, fs_ack, clk, ab_dti, ab_ack
    );
 
    /*AUTOOUTPUT*/
@@ -49,12 +49,14 @@ module dcpu16 (/*AUTOARG*/
    output [15:0]	ab_dto;			// From a0 of dcpu16_abus.v
    output		ab_stb;			// From a0 of dcpu16_abus.v
    output		ab_wre;			// From a0 of dcpu16_abus.v
-   output [15:0]	fs_adr;			// From f0 of dcpu16_fbus.v
-   output [15:0]	fs_dto;			// From f0 of dcpu16_fbus.v
-   output		fs_stb;			// From f0 of dcpu16_fbus.v
-   output		fs_wre;			// From f0 of dcpu16_fbus.v
-   output [15:0]	ireg;			// From c0 of dcpu16_ctl.v
+   output [15:0]	fs_adr;			// From a0 of dcpu16_abus.v
+   output [15:0]	fs_dto;			// From x0 of dcpu16_alu.v
+   output		fs_stb;			// From a0 of dcpu16_abus.v
+   output		fs_wre;			// From a0 of dcpu16_abus.v
+   output [15:0]	regPC;			// From a0 of dcpu16_abus.v
+   output [15:0]	regR;			// From x0 of dcpu16_alu.v
    output [15:0]	regSP;			// From a0 of dcpu16_abus.v
+   output		skp;			// From c0 of dcpu16_ctl.v
    output [15:0]	src;			// From a0 of dcpu16_abus.v
    output [15:0]	tgt;			// From a0 of dcpu16_abus.v
    // End of automatics
@@ -66,26 +68,24 @@ module dcpu16 (/*AUTOARG*/
    input		fs_ack;			// To c0 of dcpu16_ctl.v, ...
    input [15:0]		fs_dti;			// To c0 of dcpu16_ctl.v, ...
    input		rst;			// To c0 of dcpu16_ctl.v, ...
-   input [2:0]		rwa;			// To r0 of dcpu16_regs.v
-   input [15:0]		rwd;			// To r0 of dcpu16_regs.v
-   input		rwe;			// To r0 of dcpu16_regs.v
    // End of automatics
    /*AUTOWIRE*/
    // Beginning of automatic wires (for undeclared instantiated-module outputs)
    wire			ab_ena;			// From a0 of dcpu16_abus.v
-   wire [15:0]		ab_fs;			// From a0 of dcpu16_abus.v
    wire [5:0]		ea;			// From c0 of dcpu16_ctl.v
    wire			ena;			// From c0 of dcpu16_ctl.v
-   wire			fs_ena;			// From f0 of dcpu16_fbus.v
+   wire			fs_ena;			// From a0 of dcpu16_abus.v
+   wire [15:0]		ireg;			// From c0 of dcpu16_ctl.v
    wire [3:0]		opc;			// From c0 of dcpu16_ctl.v
    wire			pha;			// From c0 of dcpu16_ctl.v
    wire [15:0]		regA;			// From a0 of dcpu16_abus.v
    wire [15:0]		regB;			// From a0 of dcpu16_abus.v
    wire [15:0]		regO;			// From x0 of dcpu16_alu.v
-   wire [15:0]		regPC;			// From f0 of dcpu16_fbus.v
-   wire [15:0]		regR;			// From x0 of dcpu16_alu.v
    wire [2:0]		rra;			// From c0 of dcpu16_ctl.v
    wire [15:0]		rrd;			// From r0 of dcpu16_regs.v
+   wire [2:0]		rwa;			// From c0 of dcpu16_ctl.v
+   wire [15:0]		rwd;			// From x0 of dcpu16_alu.v
+   wire			rwe;			// From c0 of dcpu16_ctl.v
    // End of automatics
    /*AUTOREG*/
 
@@ -97,6 +97,9 @@ module dcpu16 (/*AUTOARG*/
 	 .ena				(ena),
 	 .opc				(opc[3:0]),
 	 .rra				(rra[2:0]),
+	 .rwa				(rwa[2:0]),
+	 .rwe				(rwe),
+	 .skp				(skp),
 	 .ea				(ea[5:0]),
 	 // Inputs
 	 .fs_dti			(fs_dti[15:0]),
@@ -109,25 +112,6 @@ module dcpu16 (/*AUTOARG*/
 	 .clk				(clk),
 	 .rst				(rst));   
 
-   dcpu16_fbus
-     f0 (/*AUTOINST*/
-	 // Outputs
-	 .fs_adr			(fs_adr[15:0]),
-	 .fs_stb			(fs_stb),
-	 .fs_wre			(fs_wre),
-	 .fs_dto			(fs_dto[15:0]),
-	 .regPC				(regPC[15:0]),
-	 .fs_ena			(fs_ena),
-	 // Inputs
-	 .fs_dti			(fs_dti[15:0]),
-	 .fs_ack			(fs_ack),
-	 .ab_fs				(ab_fs[15:0]),
-	 .regR				(regR[15:0]),
-	 .clk				(clk),
-	 .pha				(pha),
-	 .rst				(rst),
-	 .ena				(ena));
-
    dcpu16_abus
      a0 (/*AUTOINST*/
 	 // Outputs
@@ -136,17 +120,23 @@ module dcpu16 (/*AUTOARG*/
 	 .ab_ena			(ab_ena),
 	 .ab_wre			(ab_wre),
 	 .ab_dto			(ab_dto[15:0]),
+	 .fs_adr			(fs_adr[15:0]),
+	 .fs_stb			(fs_stb),
+	 .fs_ena			(fs_ena),
+	 .fs_wre			(fs_wre),
 	 .regSP				(regSP[15:0]),
+	 .regPC				(regPC[15:0]),
 	 .regA				(regA[15:0]),
 	 .regB				(regB[15:0]),
-	 .ab_fs				(ab_fs[15:0]),
 	 .src				(src[15:0]),
 	 .tgt				(tgt[15:0]),
 	 // Inputs
 	 .ab_dti			(ab_dti[15:0]),
 	 .ab_ack			(ab_ack),
+	 .fs_dti			(fs_dti[15:0]),
+	 .fs_ack			(fs_ack),
 	 .rrd				(rrd[15:0]),
-	 .regPC				(regPC[15:0]),
+	 .ireg				(ireg[15:0]),
 	 .regO				(regO[15:0]),
 	 .ea				(ea[5:0]),
 	 .clk				(clk),
@@ -157,6 +147,8 @@ module dcpu16 (/*AUTOARG*/
    dcpu16_alu
      x0 (/*AUTOINST*/
 	 // Outputs
+	 .fs_dto			(fs_dto[15:0]),
+	 .rwd				(rwd[15:0]),
 	 .regR				(regR[15:0]),
 	 .regO				(regO[15:0]),
 	 // Inputs
