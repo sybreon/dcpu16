@@ -31,14 +31,6 @@ module dcpu16_fbus (/*AUTOARG*/
    fs_dti, fs_ack, skp, ab_fs, regR, ireg, clk, pha, rst, ena
    );
 
-   // Simplified Wishbone
-   output [15:0] fs_adr;
-   output 	 fs_stb,
-		 fs_wre;
-   output [15:0] fs_dto;  
-   input [15:0]  fs_dti;
-   input 	 fs_ack;   
-
    // internal
    output [15:0] regPC; 
    output 	 fs_ena;
