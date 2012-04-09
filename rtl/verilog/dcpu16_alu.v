@@ -19,7 +19,7 @@ module dcpu16_alu (/*AUTOARG*/
    // Outputs
    fs_dto, rwd, regR, regO,
    // Inputs
-   ab_dti, rrd, opc, regA, regB, clk, pha, rst, ena
+   ab_dti, rrd, opc, regA, regB, clk, rst, ena, pha
    );
 
    output [15:0] fs_dto,
@@ -37,9 +37,10 @@ module dcpu16_alu (/*AUTOARG*/
 		 regB;   
    
    input 	 clk,
-		 pha,
 		 rst,
 		 ena;
+
+   input [1:0] 	 pha;   
 
    wire [15:0] 	 src, // a
 		 tgt; // b
@@ -67,7 +68,7 @@ module dcpu16_alu (/*AUTOARG*/
 	case (opc)
 	  /* Assignment */
 	  // 0x1: SET a, b - sets a to b
-	  4'h1: {regO, regR} <= {16'hX, tgt};
+	  4'h1: {regO, regR} <= {regO, tgt};
 
 	  /* Arithmetic */
 	  // 0x2: ADD a, b - sets a to a+b, sets O to 0x0001 if there's an overflow, 0x0 otherwise
@@ -87,9 +88,9 @@ module dcpu16_alu (/*AUTOARG*/
 	  // 0x9: AND a, b - sets a to a&b
 	  // 0xa: BOR a, b - sets a to a|b
 	  // 0xb: XOR a, b - sets a to a^b
-	  4'h9: {regO, regR} <= {16'hX, src & tgt};
-	  4'hA: {regO, regR} <= {16'hX, src | tgt};
-	  4'hB: {regO, regR} <= {16'hX, src ^ tgt};	  
+	  4'h9: {regO, regR} <= {regO, src & tgt};
+	  4'hA: {regO, regR} <= {regO, src | tgt};
+	  4'hB: {regO, regR} <= {regO, src ^ tgt};	  
 
 	  /* Condition */
 	  // 0xc: IFE a, b - performs next instruction only if a==b

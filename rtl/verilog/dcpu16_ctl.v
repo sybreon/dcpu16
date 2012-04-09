@@ -61,11 +61,17 @@ module dcpu16_ctl (/*AUTOARG*/
 	/*AUTORESET*/
 	// Beginning of autoreset for uninitialized flops
 	ireg <= 16'h0;
+	opc <= 4'h0;
 	// End of automatics
      end else if (ena) begin
 	case (pha)
 	  2'o2: ireg <= f_dti; // latch instruction only on PHA2
 	  default: ireg <= ireg;	  
+	endcase // case (pha)
+
+	case (pha)
+	  2'o2: opc <= ireg[3:0];	  
+	  default: opc <= opc;
 	endcase // case (pha)	
      end
 
@@ -88,7 +94,7 @@ module dcpu16_ctl (/*AUTOARG*/
 	  2'o1: rra <= decA[2:0];
 	  2'o2: rra <= decB[2:0];
 	  2'o0: rra <= decB[2:0];	  
-	  default: rra <= 3'oX;	  
+	  //default: rra <= 3'oX;	  
 	endcase // case (pha)
 
 	case (pha)
