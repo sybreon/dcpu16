@@ -17,29 +17,28 @@
 
 module dcpu16_alu (/*AUTOARG*/
    // Outputs
-   fs_dto, rwd, regR, regO,
+   f_dto, g_dto, rwd, regR, regO,
    // Inputs
-   ab_dti, rrd, opc, regA, regB, clk, pha, rst, ena
+   regA, regB, opc, clk, rst, ena, pha
    );
 
-   output [15:0] fs_dto,
+   output [15:0] f_dto,
+		 g_dto,
 		 rwd;
    
    output [15:0] regR,
 		 regO;
-
-   input [15:0]  ab_dti;
-   input [15:0]  rrd;   
    
-   input [3:0] 	 opc;
-
    input [15:0]  regA,
 		 regB;   
    
+   input [3:0] 	 opc;
+   
    input 	 clk,
-		 pha,
 		 rst,
 		 ena;
+
+   input [1:0] 	 pha;   
 
    wire [15:0] 	 src, // a
 		 tgt; // b
@@ -50,11 +49,15 @@ module dcpu16_alu (/*AUTOARG*/
    reg [15:0]		regR;
    // End of automatics
 
-   assign fs_dto = regR;
+   
+   assign f_dto = regR;
+   assign g_dto = regR;   
    assign rwd = regR;   
    
    assign src = regA;
    assign tgt = regB;   
+
+
    
    always @(posedge clk)
      if (rst) begin
@@ -67,7 +70,7 @@ module dcpu16_alu (/*AUTOARG*/
 	case (opc)
 	  /* Assignment */
 	  // 0x1: SET a, b - sets a to b
-	  4'h1: {regO, regR} <= {16'hX, tgt};
+	  4'h1: {regO, regR} <= {regO, tgt};
 
 	  /* Arithmetic */
 	  // 0x2: ADD a, b - sets a to a+b, sets O to 0x0001 if there's an overflow, 0x0 otherwise
@@ -87,9 +90,9 @@ module dcpu16_alu (/*AUTOARG*/
 	  // 0x9: AND a, b - sets a to a&b
 	  // 0xa: BOR a, b - sets a to a|b
 	  // 0xb: XOR a, b - sets a to a^b
-	  4'h9: {regO, regR} <= {16'hX, src & tgt};
-	  4'hA: {regO, regR} <= {16'hX, src | tgt};
-	  4'hB: {regO, regR} <= {16'hX, src ^ tgt};	  
+	  4'h9: {regO, regR} <= {regO, src & tgt};
+	  4'hA: {regO, regR} <= {regO, src | tgt};
+	  4'hB: {regO, regR} <= {regO, src ^ tgt};	  
 
 	  /* Condition */
 	  // 0xc: IFE a, b - performs next instruction only if a==b
