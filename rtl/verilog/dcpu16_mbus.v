@@ -155,7 +155,7 @@ module dcpu16_mbus (/*AUTOARG*/
    // calculator
 
    // EA CALCULATOR
-   wire [15:0] nwr = rrd + regPC;   // FIXME: Reduce this and combine with other ALU
+   wire [15:0] nwr = rrd + g_dti;   // FIXME: Reduce this and combine with other ALU
    reg [15:0] ea, eb;
    always @(posedge clk)
      if (rst) begin
@@ -166,27 +166,20 @@ module dcpu16_mbus (/*AUTOARG*/
 	// End of automatics
      end else if (ena) begin
 	case (pha)
-	  2'o0: case (decA[4:1])
-		  4'hF: ea <= (decA[0]) ? g_adr : g_dti; // 0x1E;
-		  4'hC,4'hD: ea <= regSP; // FIXME: SP calculator
-		  4'h8,4'h9,4'hA,4'hB: ea <= nwr;
-		  4'h4,4'h5,4'h6,4'h7: ea <= rrd;		  
-		  default: ea <= 16'hX;		  
-		endcase // case (decA)
-	  
+	  2'o0: ea <= (Aind) ? rrd :
+		      (Anwr) ? nwr :
+		      (Anwi) ? g_dti :
+		      ea;	  
 	  default: ea <= ea;	  
 	endcase // case (pha)
-	 	
+
 	case (pha)
-	  2'o1: case (decB[4:1])
-		  4'hF: eb <= (decB[0]) ? g_adr : g_dti; // 0x1E;
-		  4'hC,4'hD: eb <= regSP; // FIXME: SP calculator
-		  4'h8,4'h9,4'hA,4'hB: eb <= nwr;
-		  4'h4,4'h5,4'h6,4'h7: eb <= rrd;		  
-		  default: eb <= 16'hX;		  
-		endcase // case (decA)	  
-	  default: eb <= eb;
-	endcase // case (pha)	
+	  2'o1: eb <= (Bind) ? rrd :
+		      (Bnwr) ? nwr :
+		      (Bnwi) ? g_dti :
+		      eb;	  
+	  default: eb <= eb;	  
+	endcase // case (pha)
      end
    
    // G-BUS
