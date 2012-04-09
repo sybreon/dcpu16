@@ -110,9 +110,15 @@ module dcpu16_ctl (/*AUTOARG*/
 	endcase // case (pha)
 
 	case (pha)
-	  2'o0: {rwa, rwe} <= {_rwa, _rwe & CC};	  
-	  default: {rwa, rwe} <= {3'hX, 1'b0};	  
+	  2'o0: {rwe} <= {_rwe & CC};	  
+	  default: {rwe} <= {1'b0};	  
 	endcase // case (pha)
+	
+	case (pha)
+	  2'o1: {rwa} <= {_rwa};	  
+	  default: {rwa} <= {rwa};	  
+	endcase // case (pha)
+	
 	case (pha)
 	  2'o0: begin
 	     _rwa <= decA[2:0];
