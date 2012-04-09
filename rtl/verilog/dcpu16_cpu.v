@@ -143,9 +143,9 @@ module dcpu16_cpu (/*AUTOARG*/
 	 .regR				(regR[15:0]),
 	 .regO				(regO[15:0]),
 	 // Inputs
-	 .opc				(opc[3:0]),
 	 .regA				(regA[15:0]),
 	 .regB				(regB[15:0]),
+	 .opc				(opc[3:0]),
 	 .clk				(clk),
 	 .rst				(rst),
 	 .ena				(ena),

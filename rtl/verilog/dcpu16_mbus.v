@@ -40,10 +40,8 @@ module dcpu16_mbus (/*AUTOARG*/
    output [15:0] f_adr;
    output 	 f_stb,
 		 f_wre;
-   //output [15:0] fs_dto;  
    input [15:0]  f_dti;
    input 	 f_ack;   
-
    
    // internal
    output 	 ena;   
@@ -101,6 +99,8 @@ module dcpu16_mbus (/*AUTOARG*/
     */
 
    // decode EA
+   wire 		Adir = (decA[5:3] == 3'o0);
+   wire 		Bdir = (decB[5:3] == 3'o0);   
    wire 		Aind = (decA[5:3] == 3'o1);
    wire 		Bind = (decB[5:3] == 3'o1);
    wire 		Anwr = (decA[5:3] == 3'o2);
@@ -114,18 +114,28 @@ module dcpu16_mbus (/*AUTOARG*/
 
    wire 		incA = Anwr | Anwi | Anwl;
    wire 		incB = Bnwr | Bnwi | Bnwl;   
+
+
+   
    
    // PROGRAMME COUNTER
-   wire [15:0] 		_regPC;
-   assign _regPC = regPC + 1; // incrementer   
+   reg 			_rd;   
+   wire [15:0] 		_regPC = regPC + 1; // incrementer   
    
    always @(posedge clk)
      if (rst) begin
 	/*AUTORESET*/
 	// Beginning of autoreset for uninitialized flops
+	_rd <= 1'h0;
 	regPC <= 16'h0;
 	// End of automatics
      end else if (ena) begin
+	case (pha)
+	  2'o1: _rd <= Adir;
+	  2'o2: _rd <= Bdir;	  
+	  default: _rd <= 1'b0;	  
+	endcase // case (pha)
+	
 	case (pha)
 	  2'o2: regPC <= _regPC; // normal PC increment due to FETCH
 	  2'o3: regPC <= (incA) ? _regPC : regPC;
@@ -254,6 +264,30 @@ module dcpu16_mbus (/*AUTOARG*/
 
      end
    
-   
+   // REG-A
+   always @(posedge clk)
+     if (rst) begin
+	/*AUTORESET*/
+	// Beginning of autoreset for uninitialized flops
+	regA <= 16'h0;
+	regB <= 16'h0;
+	// End of automatics
+     end else if (ena) begin
+	case (pha)
+	  2'o0: regA <= (g_stb) ? g_dti : regA;	     
+	  2'o2: regA <= (g_stb) ? g_dti :
+			(_rd) ? rrd :
+			regA;	     
+	  default: regA <= regA;
+	endcase // case (pha)
+	
+	case (pha)
+	  2'o1: regB <= (g_stb) ? g_dti : regB;	  
+	  2'o3: regB <= (g_stb) ? g_dti :
+			(_rd) ? rrd :
+			regB;
+	  default: regB <= regB;	  
+	endcase // case (pha)	
+     end
    
 endmodule // dcpu16_abus
