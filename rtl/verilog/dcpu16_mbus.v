@@ -111,6 +111,14 @@ module dcpu16_mbus (/*AUTOARG*/
    wire 		Bind = (decB[5:3] == 3'o1);
    wire 		Anwr = (decA[5:3] == 3'o2);
    wire 		Bnwr = (decB[5:3] == 3'o2);
+
+   wire 		Apop = (decA[5:0] == 6'h18);
+   wire 		Apek = (decA[5:0] == 6'h19);
+   wire 		Apsh = (decA[5:0] == 6'h1A);
+   wire 		Bpop = (decB[5:0] == 6'h18);
+   wire 		Bpek = (decB[5:0] == 6'h19);
+   wire 		Bpsh = (decB[5:0] == 6'h1A);
+   
    wire 		Aspr = (decA[5:0] == 6'h18) | (decA[5:0] == 6'h19) | (decA[5:0] == 6'h1A);
    wire 		Bspr = (decB[5:0] == 6'h18) | (decB[5:0] == 6'h19) | (decB[5:0] == 6'h1A);
    wire 		Anwi = (decA[5:0] == 6'h1E);
@@ -164,7 +172,33 @@ module dcpu16_mbus (/*AUTOARG*/
 	endcase // case (pha)	
      end
    
-   // calculator
+   // STACK POINTER
+   reg [15:0] _regSP;
+   always @(posedge clk)
+     if (rst) begin
+	regSP <= 16'hFFFF;	
+	/*AUTORESET*/
+     end else if (ena) begin
+	case (pha)
+	  2'o0: regSP <= (Aspr) ? _regSP : regSP;
+	  2'o1: regSP <= (Bspr) ? _regSP : regSP;	  
+	endcase // case (pha)	
+     end
+
+   always @(/*AUTOSENSE*/decA or decB or pha or regSP) begin
+      case (pha)
+	2'o0: case (decA[1:0])
+		2'o0: _regSP <= regSP + 1;
+		2'o2: _regSP <= regSP - 1;		
+		default: _regSP <= regSP;		
+	      endcase // case (decA[1:0])
+	2'o1: case (decB[1:0])
+		2'o0: _regSP <= regSP + 1;
+		2'o2: _regSP <= regSP - 1;
+		default: _regSP <= regSP;		
+	      endcase // case (decA[1:0])
+      endcase // case (pha)      
+   end
 
    // EA CALCULATOR
    wire [15:0] nwr = rrd + g_dti;   // FIXME: Reduce this and combine with other ALU
@@ -180,7 +214,9 @@ module dcpu16_mbus (/*AUTOARG*/
 	case (pha)
 	  2'o0: ea <= (Aind) ? rrd :
 		      (Anwr) ? nwr :
-		      (Anwi) ? g_dti :
+		      (Apsh) ? _regSP :
+		      (Apop | Apek) ? regSP :
+		      (Anwi) ? g_dti :		      
 		      ea;	  
 	  default: ea <= ea;	  
 	endcase // case (pha)
@@ -188,6 +224,8 @@ module dcpu16_mbus (/*AUTOARG*/
 	case (pha)
 	  2'o1: eb <= (Bind) ? rrd :
 		      (Bnwr) ? nwr :
+		      (Bpsh) ? _regSP :
+		      (Bpop | Bpek) ? regSP :
 		      (Bnwi) ? g_dti :
 		      eb;	  
 	  default: eb <= eb;	  
