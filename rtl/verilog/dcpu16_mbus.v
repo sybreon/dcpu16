@@ -97,7 +97,7 @@ module dcpu16_mbus (/*AUTOARG*/
     0x20-0x3f: literal value 0x00-0x1f (literal)
     */
 
-   // decode EA
+   // decode EA  
    wire 		Adir = (decA[5:3] == 3'o0);
    wire 		Bdir = (decB[5:3] == 3'o0);   
    wire 		Aind = (decA[5:3] == 3'o1);
@@ -131,10 +131,9 @@ module dcpu16_mbus (/*AUTOARG*/
  		   
    wire 		incA = Anwr | Anwi | Anwl;
    wire 		incB = Bnwr | Bnwi | Bnwl;    
-
+    
+   
    wire 		Fjsr = (ireg [4:0] == 5'h10);   
-
-
 
    wire [5:0] 		ed = (pha[0]) ? decB : decA;   
 
@@ -154,14 +153,14 @@ module dcpu16_mbus (/*AUTOARG*/
    wire 		Frpc = (fg[5:0] == 6'h1C);
    wire 		Fnwi = (fg[5:0] == 6'h1E);
    wire 		Fnwl = (fg[5:0] == 6'h1F);
+   wire 		Fisp = (fg[5:0] == 6'h18);
+   wire 		Fdsp = (fg[5:0] == 6'h1A);   
    wire 		Fspr = (fg[5:0] == 6'h18) | (fg[5:0] == 6'h19) | (fg[5:0] == 6'h1A);
    
 
    wire [15:0] 		nwr = rrd + g_dti;   // FIXME: Reduce this and combine with other ALU
-   wire [15:0] 		decSP = regSP - 1;
-   wire [15:0] 		incSP = regSP + 1;   
    
-   // PROGRAMME COUNTER
+   // PROGRAMME COUNTER - loadable binary up counter
    reg [15:0] 		rpc;
    reg 			lpc;  
    
@@ -184,18 +183,14 @@ module dcpu16_mbus (/*AUTOARG*/
 	endcase // case (pha)	
      end
 
-   always @(/*AUTOSENSE*/bra or pha or regB or regPC or regR or wpc) begin      
+   always @(/*AUTOSENSE*/bra or incA or incB or pha or regB or regPC
+	    or regR or wpc) begin      
       case (pha)
-	//2'o3: rpc <= regPC;
-	//2'o0: rpc <= regPC;
 	2'o1: rpc <= (wpc) ? regR :
 		     (bra) ? regB :
 		     regPC;
 	default: rpc <= regPC;	
       endcase // case (pha)
-   end // always (...
-   
-   always @(/*AUTOSENSE*/incA or incB or pha) begin     
       case (pha)
 	2'o3: lpc <= ~incA;
 	2'o0: lpc <= ~incB;
@@ -204,32 +199,39 @@ module dcpu16_mbus (/*AUTOARG*/
       endcase // case (pha)
    end // always (...
    
-   // STACK POINTER
-   reg [15:0] _regSP;
+   // STACK POINTER - loadable binary up/down counter   
+   reg [15:0] _rSP;
+   reg 	      lsp;
+   reg [15:0] rsp;
+   
    always @(posedge clk)
      if (rst) begin
-	regSP <= 16'hFFFF;	
+	regSP <= 16'hFFFF;
 	/*AUTORESET*/
+	// Beginning of autoreset for uninitialized flops
+	_rSP <= 16'h0;
+	// End of automatics
      end else if (ena) begin
-	case (pha)
-	  2'o0: regSP <= (Fjsr) ? decSP :
-			 (Aspr) ? _regSP : regSP;
-	  2'o1: regSP <= (Bspr) ? _regSP : regSP;	  
-	endcase // case (pha)
+	_rSP <= regSP; // backup SP
+
+	// manipulate SP
+	if (lsp)
+	  regSP <= rsp;
+	else if (fg[1] | Fjsr)
+	  regSP <= regSP - 1;
+	else
+	  regSP <= regSP + 1;	
      end
 
-   always @(/*AUTOSENSE*/decA or decB or pha or regSP) begin
+   always @(/*AUTOSENSE*/Fdsp or Fisp or Fjsr or pha or regSP) begin
       case (pha)
-	2'o0: case (decA[1:0])
-		2'o0: _regSP <= regSP + 1;
-		2'o2: _regSP <= regSP - 1;		
-		default: _regSP <= regSP;		
-	      endcase // case (decA[1:0])
-	2'o1: case (decB[1:0])
-		2'o0: _regSP <= regSP + 1;
-		2'o2: _regSP <= regSP - 1;
-		default: _regSP <= regSP;		
-	      endcase // case (decB[1:0])
+	2'o3: lsp <= ~(Fisp | Fdsp | Fjsr);	
+	2'o0: lsp <= ~(Fisp | Fdsp);	
+	default: lsp <= 1'b1;	
+      endcase // case (pha)
+      
+      case (pha)	
+	default: rsp <= regSP;	
       endcase // case (pha)
    end // always @ (...
 
@@ -248,7 +250,7 @@ module dcpu16_mbus (/*AUTOARG*/
 	// End of automatics
      end else if (ena) begin
 	case (pha)
-	  2'o0: ea <= (Fjsr) ? decSP : ec;	  
+	  2'o0: ea <= (Fjsr) ? regSP : ec;	  
 	  default: ea <= ea;	  
 	endcase // case (pha)
 
@@ -260,12 +262,12 @@ module dcpu16_mbus (/*AUTOARG*/
 
    
    always @(/*AUTOSENSE*/Eind or Enwi or Enwr or Epek or Epop or Epsh
-	    or _regSP or g_dti or nwr or regSP or rrd) begin
+	    or _rSP or g_dti or nwr or regSP or rrd) begin
       ec <= (Eind) ? rrd :
 	    (Enwr) ? nwr :
 	    //(Fjsr) ? decSP :
-	    (Epsh) ? _regSP :
-	    (Epop | Epek) ? regSP :
+	    (Epsh) ? regSP :
+	    (Epop | Epek) ? _rSP :
 	    (Enwi) ? g_dti :
 	    16'hX;      
    end
