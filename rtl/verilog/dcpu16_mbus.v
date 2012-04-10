@@ -103,17 +103,16 @@ module dcpu16_mbus (/*AUTOARG*/
 
    wire [5:0] 		ed = (pha[0]) ? decB : decA;   
 
-   wire 		Eind = (ed[5:3] == 3'o1);
-   wire 		Enwr = (ed[5:3] == 3'o2);
-   wire 		Epsh = (ed[5:0] == 6'h1A);
-   wire 		Epop = (ed[5:0] == 6'h18);
-   wire 		Epek = (ed[5:0] == 6'h19);
+   wire 		Eind = (ed[5:3] == 3'o1); // [R]
+   wire 		Enwr = (ed[5:3] == 3'o2); // [[PC++] + R]
+   wire 		Epop = (ed[5:0] == 6'h18); // [SP++]
+   wire 		Epek = (ed[5:0] == 6'h19); // [SP]
+   wire 		Epsh = (ed[5:0] == 6'h1A); // [--SP]
    wire 		Ersp = (ed[5:0] == 6'h1B); // SP
    wire 		Erpc = (ed[5:0] == 6'h1C); // PC
    wire 		Erro = (ed[5:0] == 6'h1D); // O
-   wire 		Enwi = (ed[5:0] == 6'h1E);   
-   wire 		Espr = (ed[5:0] == 6'h18) | (ed[5:0] == 6'h19) | (ed[5:0] == 6'h1A);
-   wire 		Esht = ed[5];   
+   wire 		Enwi = (ed[5:0] == 6'h1E); // [PC++]
+   wire 		Esht = ed[5]; // xXX
 
    wire [5:0] 		fg = (pha[0]) ? decA : decB;   
 
@@ -126,9 +125,7 @@ module dcpu16_mbus (/*AUTOARG*/
    wire 		Frsp = (fg[5:0] == 6'h1B); // SP
    wire 		Frpc = (fg[5:0] == 6'h1C); // PC
    wire 		Fnwi = (fg[5:0] == 6'h1E); // [PC++]
-   wire 		Fnwl = (fg[5:0] == 6'h1F); // PC++
-//   wire 		Fspr = (fg[5:0] == 6'h18) | (fg[5:0] == 6'h19) | (fg[5:0] == 6'h1A);
-   
+   wire 		Fnwl = (fg[5:0] == 6'h1F); // PC++   
    
    // PROGRAMME COUNTER - loadable binary up counter
    reg [15:0] 		rpc;
@@ -357,14 +354,6 @@ module dcpu16_mbus (/*AUTOARG*/
 	// End of automatics
      end else if (ena) begin
 	case (pha)
-	  /*
-	  2'o0: regA <= (g_stb) ? g_dti :
-			(Ersp) ? regSP :
-			(Erpc) ? regPC :
-			(Erro) ? regO :
-			(Esht) ? {11'd0,ed[4:0]} :
-			regA;	     
-	   */
 	  2'o0: regA <= opr;	  
 	  2'o2: regA <= (g_stb) ? g_dti :
 			(Fjsr) ? regPC :
@@ -375,21 +364,6 @@ module dcpu16_mbus (/*AUTOARG*/
 	
 	case (pha)
 	  2'o1: regB <= opr;	  
-	  /*
-	  2'o1: regB <= (g_stb) ? g_dti :
-			(Ersp) ? regSP :
-			(Erpc) ? regPC :
-			(Erro) ? regO :
-			(Esht) ? {11'd0,ed[4:0]} :
-			regB;
-	  /*
-	  2'o1: regB <= (g_stb) ? g_dti :
-			(Brsp) ? regSP :
-			(Brpc) ? regPC :
-			(Brro) ? regO :
-			(Bsht) ? {11'd0,decB[4:0]} :
-			regB;	  
-	   */
 	  2'o3: regB <= (g_stb) ? g_dti :
 			(_rd) ? rrd :
 			regB;
