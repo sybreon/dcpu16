@@ -23,8 +23,7 @@
 
 module dcpu16_mbus (/*AUTOARG*/
    // Outputs
-   g_adr, g_stb, g_wre, f_adr, f_stb, f_wre, ena, wpc, regSP, regPC,
-   regA, regB, src, tgt,
+   g_adr, g_stb, g_wre, f_adr, f_stb, f_wre, ena, wpc, regA, regB,
    // Inputs
    g_dti, g_ack, f_dti, f_ack, bra, CC, regR, rrd, ireg, regO, pha,
    clk, rst
@@ -47,8 +46,6 @@ module dcpu16_mbus (/*AUTOARG*/
    // internal
    output 	 ena;
    output 	 wpc;   
-   output [15:0] regSP,
-		 regPC;
    output [15:0] regA,
 		 regB;
 
@@ -58,9 +55,6 @@ module dcpu16_mbus (/*AUTOARG*/
    input [15:0]  rrd;
    input [15:0]  ireg;   
    input [15:0]  regO;   
-
-   output [15:0] src,
-		 tgt;   
 
    input [1:0] 	 pha;   
    input 	 clk,
@@ -75,13 +69,12 @@ module dcpu16_mbus (/*AUTOARG*/
    reg			g_stb;
    reg [15:0]		regA;
    reg [15:0]		regB;
-   reg [15:0]		regPC;
-   reg [15:0]		regSP;
-   reg [15:0]		src;
-   reg [15:0]		tgt;
    reg			wpc;
    // End of automatics
 
+   reg [15:0] 		regSP,
+			regPC;
+   
    assign ena = (f_stb ~^ f_ack) & (g_stb ~^ g_ack); // pipe stall
 
    // repeated decoder
