@@ -201,8 +201,12 @@ module dcpu16_mbus (/*AUTOARG*/
    end
 
    // EA CALCULATOR
-   wire [15:0] nwr = rrd + g_dti;   //` FIXME: Reduce this and combine with other ALU
-   reg [15:0] ea, eb;
+   wire [15:0] nwr = rrd + g_dti;   // FIXME: Reduce this and combine with other ALU
+
+   reg [15:0] ea, 
+	      eb;
+   reg [15:0] ec; // Calculated EA
+ 
    always @(posedge clk)
      if (rst) begin
 	/*AUTORESET*/
@@ -212,6 +216,7 @@ module dcpu16_mbus (/*AUTOARG*/
 	// End of automatics
      end else if (ena) begin
 	case (pha)
+	  /*
 	  2'o0: ea <= (Aind) ? rrd :
 		      (Anwr) ? nwr :
 		      (Fjsr) ? decSP :
@@ -219,19 +224,44 @@ module dcpu16_mbus (/*AUTOARG*/
 		      (Apop | Apek) ? regSP :
 		      (Anwi) ? g_dti :		      
 		      ea;	  
+	   */
+	  2'o0: ea <= (Fjsr) ? decSP : ec;	  
 	  default: ea <= ea;	  
 	endcase // case (pha)
 
 	case (pha)
+	  /*
 	  2'o1: eb <= (Bind) ? rrd :
 		      (Bnwr) ? nwr :
 		      (Bpsh) ? _regSP :
 		      (Bpop | Bpek) ? regSP :
 		      (Bnwi) ? g_dti :
-		      eb;	  
+		      eb;	 
+	   */
+	  2'o1: eb <= ec;	  
 	  default: eb <= eb;	  
 	endcase // case (pha)
      end
+
+   wire [5:0] ed = (pha[0]) ? decB : decA;   
+
+   wire       Eind = (ed[5:3] == 3'o1);
+   wire       Enwr = (ed[5:3] == 3'o2);
+   wire       Epsh = (ed[5:0] == 6'h1A);
+   wire       Epop = (ed[5:0] == 6'h18);
+   wire       Epek = (ed[5:0] == 6'h19);
+   wire       Enwi = (ed[5:0] == 6'h1E);   
+   
+   always @(/*AUTOSENSE*/Eind or Enwi or Enwr or Epek or Epop or Epsh
+	    or _regSP or g_dti or nwr or regSP or rrd) begin
+      ec <= (Eind) ? rrd :
+	    (Enwr) ? nwr :
+	    //(Fjsr) ? decSP :
+	    (Epsh) ? _regSP :
+	    (Epop | Epek) ? regSP :
+	    (Enwi) ? g_dti :
+	    16'hX;      
+   end
    
    // G-BUS
    assign g_wre = 1'b0;
@@ -249,7 +279,7 @@ module dcpu16_mbus (/*AUTOARG*/
 	  2'o0: g_adr <= regPC;
 	  2'o1: g_adr <= ea;
 	  2'o2: g_adr <= eb;	  
-	  default: g_adr <= 16'hX;	  
+	  //default: g_adr <= 16'hX;	  
 	endcase // case (pha)
 
 	case (pha)
@@ -257,7 +287,7 @@ module dcpu16_mbus (/*AUTOARG*/
 	  2'o0: g_stb <= Bnwr | Bnwi | Bnwl;
 	  2'o1: g_stb <= Aind | Anwr | Aspr | Anwi;
 	  2'o2: g_stb <= Bind | Bnwr | Bspr | Bnwi;	  
-	  default: g_stb <= 1'bX;	  
+	  //default: g_stb <= 1'bX;	  
 	endcase // case (pha)	
      end
    
