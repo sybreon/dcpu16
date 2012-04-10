@@ -69,6 +69,8 @@ module dcpu16_alu (/*AUTOARG*/
 	// End of automatics
      end else if (ena) begin
 	case (opc)
+	  /* JSR */
+	  4'h0: {regO, regR} <= {regO, tgt};	  
 	  /* Assignment */
 	  // 0x1: SET a, b - sets a to b
 	  4'h1: {regO, regR} <= {regO, tgt};

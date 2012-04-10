@@ -81,7 +81,6 @@ module dcpu16_ctl (/*AUTOARG*/
      if (rst) begin
 	/*AUTORESET*/
 	// Beginning of autoreset for uninitialized flops
-	bra <= 1'h0;
 	ireg <= 16'h0;
 	opc <= 4'h0;
 	// End of automatics
@@ -95,16 +94,24 @@ module dcpu16_ctl (/*AUTOARG*/
 	  2'o2: opc <= ireg[3:0];	  
 	  default: opc <= opc;
 	endcase // case (pha)
-
-	case (pha)
-	  2'o2: bra <= (ireg[5:0] == 5'h10);	  
-	  default: bra <= bra;	  
-	endcase // case (pha)
 	
      end
 
    // BRANCH CONTROL
-   
+   reg _bra;   
+   always @(posedge clk)
+     if (rst) begin
+	/*AUTORESET*/
+	// Beginning of autoreset for uninitialized flops
+	_bra <= 1'h0;
+	bra <= 1'h0;
+	// End of automatics
+     end else if (ena) begin
+	case (pha)
+	  2'o0: {bra, _bra} <= {_bra, (ireg[5:0] == 5'h10)};	  
+	  default: {bra, _bra} <= {1'b0, _bra};	  
+	endcase // case (pha)
+     end
    
    // REGISTER FILE
    reg [2:0] _rwa;
