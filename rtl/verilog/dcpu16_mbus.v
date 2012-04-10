@@ -72,11 +72,12 @@ module dcpu16_mbus (/*AUTOARG*/
    reg			wpc;
    // End of automatics
 
+   reg 			wsp;   
    reg [15:0] 		regSP,
 			regPC;
    
    assign ena = (f_stb ~^ f_ack) & (g_stb ~^ g_ack); // pipe stall
-
+   
    // repeated decoder
    wire [5:0] 		decA, decB;
    wire [3:0] 		decO;   
@@ -97,68 +98,34 @@ module dcpu16_mbus (/*AUTOARG*/
     0x20-0x3f: literal value 0x00-0x1f (literal)
     */
 
-   // decode EA  
-   wire 		Adir = (decA[5:3] == 3'o0);
-   wire 		Bdir = (decB[5:3] == 3'o0);   
-   wire 		Aind = (decA[5:3] == 3'o1);
-   wire 		Bind = (decB[5:3] == 3'o1);
-   wire 		Anwr = (decA[5:3] == 3'o2);
-   wire 		Bnwr = (decB[5:3] == 3'o2);
-
-   wire 		Apop = (decA[5:0] == 6'h18);
-   wire 		Apek = (decA[5:0] == 6'h19);
-   wire 		Apsh = (decA[5:0] == 6'h1A);
-   wire 		Bpop = (decB[5:0] == 6'h18);
-   wire 		Bpek = (decB[5:0] == 6'h19);
-   wire 		Bpsh = (decB[5:0] == 6'h1A);
-   
-   wire 		Aspr = (decA[5:0] == 6'h18) | (decA[5:0] == 6'h19) | (decA[5:0] == 6'h1A);
-   wire 		Bspr = (decB[5:0] == 6'h18) | (decB[5:0] == 6'h19) | (decB[5:0] == 6'h1A);
-   wire 		Anwi = (decA[5:0] == 6'h1E);
-   wire 		Bnwi = (decB[5:0] == 6'h1E);
-   wire 		Anwl = (decA[5:0] == 6'h1F);
-   wire 		Bnwl = (decB[5:0] == 6'h1F);   
-
-   wire 		Arsp = (decA[5:0] == 6'h1B);
-   wire 		Arpc = (decA[5:0] == 6'h1C);
-   wire 		Arro = (decA[5:0] == 6'h1D);
-   wire 		Brsp = (decB[5:0] == 6'h1B);
-   wire 		Brpc = (decB[5:0] == 6'h1C);
-   wire 		Brro = (decB[5:0] == 6'h1D);
-
-   wire 		Asht = (decA[5]);
-   wire 		Bsht = (decB[5]);
- 		   
-   wire 		incA = Anwr | Anwi | Anwl;
-   wire 		incB = Bnwr | Bnwi | Bnwl;    
-    
-   
+   // decode EA     
    wire 		Fjsr = (ireg [4:0] == 5'h10);   
 
    wire [5:0] 		ed = (pha[0]) ? decB : decA;   
 
-   wire 		Eind = (ed[5:3] == 3'o1);
-   wire 		Enwr = (ed[5:3] == 3'o2);
-   wire 		Epsh = (ed[5:0] == 6'h1A);
-   wire 		Epop = (ed[5:0] == 6'h18);
-   wire 		Epek = (ed[5:0] == 6'h19);
-   wire 		Enwi = (ed[5:0] == 6'h1E);   
-   wire 		Espr = (ed[5:0] == 6'h18) | (ed[5:0] == 6'h19) | (ed[5:0] == 6'h1A);
+   wire 		Eind = (ed[5:3] == 3'o1); // [R]
+   wire 		Enwr = (ed[5:3] == 3'o2); // [[PC++] + R]
+   wire 		Epop = (ed[5:0] == 6'h18); // [SP++]
+   wire 		Epek = (ed[5:0] == 6'h19); // [SP]
+   wire 		Epsh = (ed[5:0] == 6'h1A); // [--SP]
+   wire 		Ersp = (ed[5:0] == 6'h1B); // SP
+   wire 		Erpc = (ed[5:0] == 6'h1C); // PC
+   wire 		Erro = (ed[5:0] == 6'h1D); // O
+   wire 		Enwi = (ed[5:0] == 6'h1E); // [PC++]
+   wire 		Esht = ed[5]; // xXX
 
    wire [5:0] 		fg = (pha[0]) ? decA : decB;   
 
-   wire 		Fdir = (fg[5:3] == 3'o0);   
-   wire 		Fnwr = (fg[5:3] == 3'o2);
-   wire 		Find = (fg[5:3] == 3'o1);
-   wire 		Frpc = (fg[5:0] == 6'h1C);
-   wire 		Fnwi = (fg[5:0] == 6'h1E);
-   wire 		Fnwl = (fg[5:0] == 6'h1F);
-   wire 		Fisp = (fg[5:0] == 6'h18);
-   wire 		Fdsp = (fg[5:0] == 6'h1A);   
-   wire 		Fspr = (fg[5:0] == 6'h18) | (fg[5:0] == 6'h19) | (fg[5:0] == 6'h1A);
-   
-
-   wire [15:0] 		nwr = rrd + g_dti;   // FIXME: Reduce this and combine with other ALU
+   wire 		Fdir = (fg[5:3] == 3'o0); // R
+   wire 		Find = (fg[5:3] == 3'o1); // [R]
+   wire 		Fnwr = (fg[5:3] == 3'o2); // [[PC++] + R]
+   wire 		Fspi = (fg[5:0] == 6'h18); // [SP++]
+   wire 		Fspr = (fg[5:0] == 6'h19); // [SP]
+   wire 		Fspd = (fg[5:0] == 6'h1A); // [--SP]  
+   wire 		Frsp = (fg[5:0] == 6'h1B); // SP
+   wire 		Frpc = (fg[5:0] == 6'h1C); // PC
+   wire 		Fnwi = (fg[5:0] == 6'h1E); // [PC++]
+   wire 		Fnwl = (fg[5:0] == 6'h1F); // PC++   
    
    // PROGRAMME COUNTER - loadable binary up counter
    reg [15:0] 		rpc;
@@ -180,11 +147,11 @@ module dcpu16_mbus (/*AUTOARG*/
        	case (pha)
 	  2'o1: wpc <= Frpc & CC;
 	  default: wpc <= wpc;	  
-	endcase // case (pha)	
-     end
+	endcase // case (pha)
+     end // if (ena)
 
-   always @(/*AUTOSENSE*/bra or incA or incB or pha or regB or regPC
-	    or regR or wpc) begin      
+   always @(/*AUTOSENSE*/Fnwi or Fnwl or Fnwr or bra or pha or regB
+	    or regPC or regR or wpc) begin      
       case (pha)
 	2'o1: rpc <= (wpc) ? regR :
 		     (bra) ? regB :
@@ -192,12 +159,12 @@ module dcpu16_mbus (/*AUTOARG*/
 	default: rpc <= regPC;	
       endcase // case (pha)
       case (pha)
-	2'o3: lpc <= ~incA;
-	2'o0: lpc <= ~incB;
+	2'o3: lpc <= ~(Fnwr | Fnwi | Fnwl);
+	2'o0: lpc <= ~(Fnwr | Fnwi | Fnwl);
 	2'o1: lpc <= 1'b1;	
 	default: lpc <= 1'b0;	
       endcase // case (pha)
-   end // always (...
+   end // always @ (...
    
    // STACK POINTER - loadable binary up/down counter   
    reg [15:0] _rSP;
@@ -210,36 +177,44 @@ module dcpu16_mbus (/*AUTOARG*/
 	/*AUTORESET*/
 	// Beginning of autoreset for uninitialized flops
 	_rSP <= 16'h0;
+	wsp <= 1'h0;
 	// End of automatics
      end else if (ena) begin
 	_rSP <= regSP; // backup SP
 
-	// manipulate SP
-	if (lsp)
+	if (lsp) // manipulate SP
 	  regSP <= rsp;
 	else if (fg[1] | Fjsr)
 	  regSP <= regSP - 1;
 	else
-	  regSP <= regSP + 1;	
-     end
+	  regSP <= regSP + 1;
 
-   always @(/*AUTOSENSE*/Fdsp or Fisp or Fjsr or pha or regSP) begin
+	case (pha) // write to SP
+	  2'o1: wsp <= Frsp & CC;	  
+	  default: wsp <= wsp;	  
+	endcase // case (pha)
+     end // if (ena)
+
+   always @(/*AUTOSENSE*/Fjsr or Fspd or Fspi or pha or regR or regSP
+	    or wsp) begin
       case (pha)
-	2'o3: lsp <= ~(Fisp | Fdsp | Fjsr);	
-	2'o0: lsp <= ~(Fisp | Fdsp);	
+	2'o3: lsp <= ~(Fspi | Fspd | Fjsr);	
+	2'o0: lsp <= ~(Fspi | Fspd);
 	default: lsp <= 1'b1;	
       endcase // case (pha)
       
-      case (pha)	
+      case (pha)
+	2'o1: rsp <= (wsp) ? regR :
+		     regSP;	
 	default: rsp <= regSP;	
       endcase // case (pha)
    end // always @ (...
 
    // EA CALCULATOR
-
-   reg [15:0] ea, 
-	      eb;
-   reg [15:0] ec; // Calculated EA
+   wire [15:0] 		nwr = rrd + g_dti;   // FIXME: Reduce this and combine with other ALU
+   reg [15:0] 		ea, 
+			eb;
+   reg [15:0] 		ec; // Calculated EA
  
    always @(posedge clk)
      if (rst) begin
@@ -259,8 +234,7 @@ module dcpu16_mbus (/*AUTOARG*/
 	  default: eb <= eb;	  
 	endcase // case (pha)
      end // if (ena)
-
-   
+  
    always @(/*AUTOSENSE*/Eind or Enwi or Enwr or Epek or Epop or Epsh
 	    or _rSP or g_dti or nwr or regSP or rrd) begin
       ec <= (Eind) ? rrd :
@@ -292,8 +266,8 @@ module dcpu16_mbus (/*AUTOARG*/
 	case (pha)
 	  2'o3: g_stb <= Fnwr | Fnwi | Fnwl;
 	  2'o0: g_stb <= Fnwr | Fnwi | Fnwl;
-	  2'o1: g_stb <= Find | Fnwr | Fspr | Fnwi;
-	  2'o2: g_stb <= Find | Fnwr | Fspr | Fnwi;	  
+	  2'o1: g_stb <= Find | Fnwr | Fspr | Fspi | Fspd | Fnwi;
+	  2'o2: g_stb <= Find | Fnwr | Fspr | Fspi | Fspd | Fnwi;	  
 	endcase // case (pha)
      end // if (ena)
    
@@ -322,7 +296,7 @@ module dcpu16_mbus (/*AUTOARG*/
 	endcase // case (pha)
 
 	case (pha)
-	  2'o1: _wre <= Find | Fnwr | Fspr | Fnwi | Fjsr;	     
+	  2'o1: _wre <= Find | Fnwr | Fspr | Fspi | Fspd | Fnwi | Fjsr;	     
 	  default: _wre <= _wre;	  
 	endcase // case (pha)
 	
@@ -355,7 +329,9 @@ module dcpu16_mbus (/*AUTOARG*/
      end // if (ena)
    
    // REG-A/REG-B
-   reg 			_rd;   
+   reg 			_rd;
+   reg [15:0] 		opr;
+   
    always @(posedge clk)
      if (rst) begin
 	/*AUTORESET*/
@@ -378,12 +354,7 @@ module dcpu16_mbus (/*AUTOARG*/
 	// End of automatics
      end else if (ena) begin
 	case (pha)
-	  2'o0: regA <= (g_stb) ? g_dti :
-			(Arsp) ? regSP :
-			(Arpc) ? regPC :
-			(Arro) ? regO :
-			(Asht) ? {11'd0,decA[4:0]} :
-			regA;	     
+	  2'o0: regA <= opr;	  
 	  2'o2: regA <= (g_stb) ? g_dti :
 			(Fjsr) ? regPC :
 			(_rd) ? rrd :
@@ -392,17 +363,22 @@ module dcpu16_mbus (/*AUTOARG*/
 	endcase // case (pha)
 	
 	case (pha)
-	  2'o1: regB <= (g_stb) ? g_dti :
-			(Brsp) ? regSP :
-			(Brpc) ? regPC :
-			(Brro) ? regO :
-			(Bsht) ? {11'd0,decB[4:0]} :
-			regB;	  
+	  2'o1: regB <= opr;	  
 	  2'o3: regB <= (g_stb) ? g_dti :
 			(_rd) ? rrd :
 			regB;
 	  default: regB <= regB;	  
 	endcase // case (pha)
      end // if (ena)
+
+   always @(/*AUTOSENSE*/Erpc or Erro or Ersp or Esht or ed or g_dti
+	    or g_stb or regO or regPC or regSP) begin
+      opr <= (g_stb) ? g_dti :
+	     (Ersp) ? regSP :
+	     (Erpc) ? regPC :
+	     (Erro) ? regO :
+	     (Esht) ? {11'd0,ed[4:0]} :
+	     16'hX;
+   end
    
 endmodule // dcpu16_mbus
