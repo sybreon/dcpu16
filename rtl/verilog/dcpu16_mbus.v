@@ -92,7 +92,7 @@ module dcpu16_mbus (/*AUTOARG*/
    /*
     0x00-0x07: register (A, B, C, X, Y, Z, I or J, in that order)
     0x08-0x0f: [register]
-    0x10-0x17: [next word + register]
+`    0x10-0x17: [next word + register]
          0x18: POP / [SP++]
          0x19: PEEK / [SP]
          0x1a: PUSH / [--SP]
@@ -111,6 +111,14 @@ module dcpu16_mbus (/*AUTOARG*/
    wire 		Bind = (decB[5:3] == 3'o1);
    wire 		Anwr = (decA[5:3] == 3'o2);
    wire 		Bnwr = (decB[5:3] == 3'o2);
+
+   wire 		Apop = (decA[5:0] == 6'h18);
+   wire 		Apek = (decA[5:0] == 6'h19);
+   wire 		Apsh = (decA[5:0] == 6'h1A);
+   wire 		Bpop = (decB[5:0] == 6'h18);
+   wire 		Bpek = (decB[5:0] == 6'h19);
+   wire 		Bpsh = (decB[5:0] == 6'h1A);
+   
    wire 		Aspr = (decA[5:0] == 6'h18) | (decA[5:0] == 6'h19) | (decA[5:0] == 6'h1A);
    wire 		Bspr = (decB[5:0] == 6'h18) | (decB[5:0] == 6'h19) | (decB[5:0] == 6'h1A);
    wire 		Anwi = (decA[5:0] == 6'h1E);
@@ -130,6 +138,8 @@ module dcpu16_mbus (/*AUTOARG*/
  		   
    wire 		incA = Anwr | Anwi | Anwl;
    wire 		incB = Bnwr | Bnwi | Bnwl;    
+
+   wire 		Fjsr = (ireg [5:0] == 5'h10);   
    
    // PROGRAMME COUNTER
    reg 			_rd;   
@@ -154,7 +164,9 @@ module dcpu16_mbus (/*AUTOARG*/
 	  2'o2: regPC <= _regPC; // normal PC increment due to FETCH
 	  2'o3: regPC <= (incA) ? _regPC : regPC;
 	  2'o0: regPC <= (incB) ? _regPC : regPC;
-	  2'o1: regPC <= (wpc) ? regR : regPC;
+	  2'o1: regPC <= (wpc) ? regR :
+			 (bra) ? regB :
+			 regPC;
 	  //default: regPC <= regPC;	  
 	endcase // case (pha)
 
@@ -164,10 +176,39 @@ module dcpu16_mbus (/*AUTOARG*/
 	endcase // case (pha)	
      end
    
-   // calculator
+   // STACK POINTER
+   wire [15:0] decSP = regSP - 1;
+   wire [15:0] incSP = regSP + 1;   
+   reg [15:0] _regSP;
+   always @(posedge clk)
+     if (rst) begin
+	regSP <= 16'hFFFF;	
+	/*AUTORESET*/
+     end else if (ena) begin
+	case (pha)
+	  2'o0: regSP <= (Fjsr) ? decSP :
+			 (Aspr) ? _regSP : regSP;
+	  2'o1: regSP <= (Bspr) ? _regSP : regSP;	  
+	endcase // case (pha)	
+     end
+
+   always @(/*AUTOSENSE*/decA or decB or pha or regSP) begin
+      case (pha)
+	2'o0: case (decA[1:0])
+		2'o0: _regSP <= regSP + 1;
+		2'o2: _regSP <= regSP - 1;		
+		default: _regSP <= regSP;		
+	      endcase // case (decA[1:0])
+	2'o1: case (decB[1:0])
+		2'o0: _regSP <= regSP + 1;
+		2'o2: _regSP <= regSP - 1;
+		default: _regSP <= regSP;		
+	      endcase // case (decA[1:0])
+      endcase // case (pha)      
+   end
 
    // EA CALCULATOR
-   wire [15:0] nwr = rrd + g_dti;   // FIXME: Reduce this and combine with other ALU
+   wire [15:0] nwr = rrd + g_dti;   //` FIXME: Reduce this and combine with other ALU
    reg [15:0] ea, eb;
    always @(posedge clk)
      if (rst) begin
@@ -180,7 +221,10 @@ module dcpu16_mbus (/*AUTOARG*/
 	case (pha)
 	  2'o0: ea <= (Aind) ? rrd :
 		      (Anwr) ? nwr :
-		      (Anwi) ? g_dti :
+		      (Fjsr) ? decSP :
+		      (Apsh) ? _regSP :
+		      (Apop | Apek) ? regSP :
+		      (Anwi) ? g_dti :		      
 		      ea;	  
 	  default: ea <= ea;	  
 	endcase // case (pha)
@@ -188,6 +232,8 @@ module dcpu16_mbus (/*AUTOARG*/
 	case (pha)
 	  2'o1: eb <= (Bind) ? rrd :
 		      (Bnwr) ? nwr :
+		      (Bpsh) ? _regSP :
+		      (Bpop | Bpek) ? regSP :
 		      (Bnwi) ? g_dti :
 		      eb;	  
 	  default: eb <= eb;	  
@@ -238,7 +284,7 @@ module dcpu16_mbus (/*AUTOARG*/
 	case (pha)
 	  2'o2: begin
 	     _adr <= g_adr;
-	     _stb <= g_stb;
+	     _stb <= g_stb | Fjsr;
 	  end
 	  default:begin
 	     _adr <= _adr;
@@ -247,7 +293,7 @@ module dcpu16_mbus (/*AUTOARG*/
 	endcase // case (pha)
 
 	case (pha)
-	  2'o2: _wre <= Aind | Anwr | Aspr | Anwi;	     
+	  2'o2: _wre <= Aind | Anwr | Aspr | Anwi | Fjsr;	     
 	  default: _wre <= _wre;	  
 	endcase // case (pha)
 	
@@ -264,13 +310,15 @@ module dcpu16_mbus (/*AUTOARG*/
      end else if (ena) begin
 
 	case (pha)
-	  2'o1: f_adr <= (wpc) ? regR : regPC;
+	  2'o1: f_adr <= (wpc) ? regR :
+			 (bra) ? regB :
+			 regPC;
 	  2'o0: f_adr <= _adr;	  
 	  default: f_adr <= 16'hX;	  
 	endcase // case (pha)
 
 	case (pha)
-	  2'o1: {f_stb,f_wre} <= 2'o2;
+	  2'o1: {f_stb,f_wre} <= (Fjsr) ? 2'o0 : 2'o2;
 	  2'o0: {f_stb,f_wre} <= {_stb, _wre & CC};	  
 	  default: {f_stb,f_wre} <= 2'o0;	  
 	endcase // case (pha)
@@ -294,6 +342,7 @@ module dcpu16_mbus (/*AUTOARG*/
 			(Asht) ? {11'd0,decA[4:0]} :
 			regA;	     
 	  2'o2: regA <= (g_stb) ? g_dti :
+			(Fjsr) ? regPC :
 			(_rd) ? rrd :
 			regA;	     
 	  default: regA <= regA;
