@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <title>DCPU-16 by sybreon</title>
+  </head>
+
+  <body>
+
+    <header>
+      <div class="container">
+        <h1>DCPU-16</h1>
+        <h2>Pipelined DCPU-16 Verilog Implementation</h2>
+
+        <section id="downloads">
+          <a href="https://github.com/sybreon/dcpu16/zipball/master" class="btn">Download as .zip</a>
+          <a href="https://github.com/sybreon/dcpu16/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/sybreon/dcpu16" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+      </div>
+    </header>
+
+    <div class="container">
+      <section id="main_content">
+        <p>This is a hardware implementation of the DCPU-16 cpu designed by <a href="https://github.com/notch" class="user-mention">@notch</a> for his new game 0x10c. </p>
+
+<p>It is written entirely in RTL Verilog and is fully synthesisable. While basically functional, there is still plenty of room for improvement.</p>
+
+<h2>Pipeline</h2>
+
+<p>The DCPU16 is designed with a single-issue 8-stage integer pipeline with a maximum speed of 1-clock cycle per stage. It takes at least 8-clock cycles to complete a single instruction and this is split into two stages of 4-clock cycles each. </p>
+
+<p>As a result, the maximum effective instruction rate is 4-clock cycles per instruction.</p>
+
+<ul>
+<li>Fetch (FE) - fetches the instruction.</li>
+<li>Decode (DE) - decodes the instruction.</li>
+<li>Address A (EA) - calculates the effective address for operand A.</li>
+<li>Address B (EB) - calculates the effective address for operand B.</li>
+<li>Load A (LA) - loads the operand A.</li>
+<li>Load B (LB) - loads the operand B.</li>
+<li>Execute (EX) - executes the operation.</li>
+<li>Save A (SA) - saves the result back to A.</li>
+</ul><h2>Testing</h2>
+
+<p><strong>Caveat Emptor!</strong></p>
+
+<p>It's only been tested with the sample programme provided in the official DCPU-16 documentation. This is found in the dump.vmem file, with a single re-ordering of instruction to avoid some data hazards.</p>
+
+<p>It works. </p>
+
+<p>However, there are very likely to be bugs in the code. If you spot any, feel free to fix it and send me a pull request.</p>
+
+<p>Specifically, test out all the addressing modes before use!</p>
+
+<h2>Simulation</h2>
+
+<p>You can simulate the files using Icarus Verilog. You should also install gtkwave as a waveform viewer, unless you already have something else to use.</p>
+
+<p>If you do not have any of it installed, you will need to do that first. To do this in Ubuntu, simply issue:</p>
+
+<pre><code>$ sudo apt-get -y install iverilog gtkwave
+</code></pre>
+
+<p>To simulate the DCPU16 RTL code, do the following from within the project directory.</p>
+
+<pre><code>$ cd sim/
+$ ./iversim verilog/dcpu16_sim.v
+
+VCD info: dumpfile dump.vcd opened for output.
+WARNING: /tmp/tmp.hVTa15LVC0/sim.v:1002: $readmemh: Standard inconsistency, following 1364-2005.
+
+*** TIMEOUT       5050 ***
+
+Converting VCD File 'dump.vcd' to LXT file 'dump.lxt'...
+
+145 symbols span ID range of 220, using indexing...
+[0] start time.
+[5050] end time.
+
+[0] total facilities: [0] facilities defined, [0] facilities undefined.
+</code></pre>
+
+<p>This will dump out a LXT file that you can view with gtkwave:</p>
+
+<pre><code>$ gtkwave dump.lxt
+</code></pre>
+
+<p>That's it! </p>
+
+<p>Have fun hacking!</p>
+      </section>
+    </div>
+
+    
+  </body>
+</html>
