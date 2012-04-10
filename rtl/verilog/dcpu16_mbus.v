@@ -97,7 +97,7 @@ module dcpu16_mbus (/*AUTOARG*/
     0x20-0x3f: literal value 0x00-0x1f (literal)
     */
 
-   // decode EA
+   // decode EA  
    wire 		Adir = (decA[5:3] == 3'o0);
    wire 		Bdir = (decB[5:3] == 3'o0);   
    wire 		Aind = (decA[5:3] == 3'o1);
@@ -131,78 +131,116 @@ module dcpu16_mbus (/*AUTOARG*/
  		   
    wire 		incA = Anwr | Anwi | Anwl;
    wire 		incB = Bnwr | Bnwi | Bnwl;    
-
-   wire 		Fjsr = (ireg [5:0] == 5'h10);   
+    
    
-   // PROGRAMME COUNTER
-   reg 			_rd;   
-   wire [15:0] 		_regPC = regPC + 1; // incrementer   
+   wire 		Fjsr = (ireg [4:0] == 5'h10);   
+
+   wire [5:0] 		ed = (pha[0]) ? decB : decA;   
+
+   wire 		Eind = (ed[5:3] == 3'o1);
+   wire 		Enwr = (ed[5:3] == 3'o2);
+   wire 		Epsh = (ed[5:0] == 6'h1A);
+   wire 		Epop = (ed[5:0] == 6'h18);
+   wire 		Epek = (ed[5:0] == 6'h19);
+   wire 		Enwi = (ed[5:0] == 6'h1E);   
+   wire 		Espr = (ed[5:0] == 6'h18) | (ed[5:0] == 6'h19) | (ed[5:0] == 6'h1A);
+
+   wire [5:0] 		fg = (pha[0]) ? decA : decB;   
+
+   wire 		Fdir = (fg[5:3] == 3'o0);   
+   wire 		Fnwr = (fg[5:3] == 3'o2);
+   wire 		Find = (fg[5:3] == 3'o1);
+   wire 		Frpc = (fg[5:0] == 6'h1C);
+   wire 		Fnwi = (fg[5:0] == 6'h1E);
+   wire 		Fnwl = (fg[5:0] == 6'h1F);
+   wire 		Fisp = (fg[5:0] == 6'h18);
+   wire 		Fdsp = (fg[5:0] == 6'h1A);   
+   wire 		Fspr = (fg[5:0] == 6'h18) | (fg[5:0] == 6'h19) | (fg[5:0] == 6'h1A);
+   
+
+   wire [15:0] 		nwr = rrd + g_dti;   // FIXME: Reduce this and combine with other ALU
+   
+   // PROGRAMME COUNTER - loadable binary up counter
+   reg [15:0] 		rpc;
+   reg 			lpc;  
    
    always @(posedge clk)
      if (rst) begin
 	/*AUTORESET*/
 	// Beginning of autoreset for uninitialized flops
-	_rd <= 1'h0;
 	regPC <= 16'h0;
 	wpc <= 1'h0;
 	// End of automatics
      end else if (ena) begin
-	case (pha)
-	  2'o1: _rd <= Adir;
-	  2'o2: _rd <= Bdir;	  
-	  default: _rd <= 1'b0;	  
-	endcase // case (pha)
-	
-	case (pha)
-	  2'o2: regPC <= _regPC; // normal PC increment due to FETCH
-	  2'o3: regPC <= (incA) ? _regPC : regPC;
-	  2'o0: regPC <= (incB) ? _regPC : regPC;
-	  2'o1: regPC <= (wpc) ? regR :
-			 (bra) ? regB :
-			 regPC;
-	  //default: regPC <= regPC;	  
-	endcase // case (pha)
+	if (lpc)
+	  regPC <= rpc;
+	else
+	  regPC <= regPC + 1;
 
-	case (pha)
-	  2'o1: wpc <= Arpc & CC;
+       	case (pha)
+	  2'o1: wpc <= Frpc & CC;
 	  default: wpc <= wpc;	  
 	endcase // case (pha)	
      end
+
+   always @(/*AUTOSENSE*/bra or incA or incB or pha or regB or regPC
+	    or regR or wpc) begin      
+      case (pha)
+	2'o1: rpc <= (wpc) ? regR :
+		     (bra) ? regB :
+		     regPC;
+	default: rpc <= regPC;	
+      endcase // case (pha)
+      case (pha)
+	2'o3: lpc <= ~incA;
+	2'o0: lpc <= ~incB;
+	2'o1: lpc <= 1'b1;	
+	default: lpc <= 1'b0;	
+      endcase // case (pha)
+   end // always (...
    
-   // STACK POINTER
-   wire [15:0] decSP = regSP - 1;
-   wire [15:0] incSP = regSP + 1;   
-   reg [15:0] _regSP;
+   // STACK POINTER - loadable binary up/down counter   
+   reg [15:0] _rSP;
+   reg 	      lsp;
+   reg [15:0] rsp;
+   
    always @(posedge clk)
      if (rst) begin
-	regSP <= 16'hFFFF;	
+	regSP <= 16'hFFFF;
 	/*AUTORESET*/
+	// Beginning of autoreset for uninitialized flops
+	_rSP <= 16'h0;
+	// End of automatics
      end else if (ena) begin
-	case (pha)
-	  2'o0: regSP <= (Fjsr) ? decSP :
-			 (Aspr) ? _regSP : regSP;
-	  2'o1: regSP <= (Bspr) ? _regSP : regSP;	  
-	endcase // case (pha)	
+	_rSP <= regSP; // backup SP
+
+	// manipulate SP
+	if (lsp)
+	  regSP <= rsp;
+	else if (fg[1] | Fjsr)
+	  regSP <= regSP - 1;
+	else
+	  regSP <= regSP + 1;	
      end
 
-   always @(/*AUTOSENSE*/decA or decB or pha or regSP) begin
+   always @(/*AUTOSENSE*/Fdsp or Fisp or Fjsr or pha or regSP) begin
       case (pha)
-	2'o0: case (decA[1:0])
-		2'o0: _regSP <= regSP + 1;
-		2'o2: _regSP <= regSP - 1;		
-		default: _regSP <= regSP;		
-	      endcase // case (decA[1:0])
-	2'o1: case (decB[1:0])
-		2'o0: _regSP <= regSP + 1;
-		2'o2: _regSP <= regSP - 1;
-		default: _regSP <= regSP;		
-	      endcase // case (decA[1:0])
-      endcase // case (pha)      
-   end
+	2'o3: lsp <= ~(Fisp | Fdsp | Fjsr);	
+	2'o0: lsp <= ~(Fisp | Fdsp);	
+	default: lsp <= 1'b1;	
+      endcase // case (pha)
+      
+      case (pha)	
+	default: rsp <= regSP;	
+      endcase // case (pha)
+   end // always @ (...
 
    // EA CALCULATOR
-   wire [15:0] nwr = rrd + g_dti;   //` FIXME: Reduce this and combine with other ALU
-   reg [15:0] ea, eb;
+
+   reg [15:0] ea, 
+	      eb;
+   reg [15:0] ec; // Calculated EA
+ 
    always @(posedge clk)
      if (rst) begin
 	/*AUTORESET*/
@@ -212,26 +250,27 @@ module dcpu16_mbus (/*AUTOARG*/
 	// End of automatics
      end else if (ena) begin
 	case (pha)
-	  2'o0: ea <= (Aind) ? rrd :
-		      (Anwr) ? nwr :
-		      (Fjsr) ? decSP :
-		      (Apsh) ? _regSP :
-		      (Apop | Apek) ? regSP :
-		      (Anwi) ? g_dti :		      
-		      ea;	  
+	  2'o0: ea <= (Fjsr) ? regSP : ec;	  
 	  default: ea <= ea;	  
 	endcase // case (pha)
 
 	case (pha)
-	  2'o1: eb <= (Bind) ? rrd :
-		      (Bnwr) ? nwr :
-		      (Bpsh) ? _regSP :
-		      (Bpop | Bpek) ? regSP :
-		      (Bnwi) ? g_dti :
-		      eb;	  
+	  2'o1: eb <= ec;	  
 	  default: eb <= eb;	  
 	endcase // case (pha)
-     end
+     end // if (ena)
+
+   
+   always @(/*AUTOSENSE*/Eind or Enwi or Enwr or Epek or Epop or Epsh
+	    or _rSP or g_dti or nwr or regSP or rrd) begin
+      ec <= (Eind) ? rrd :
+	    (Enwr) ? nwr :
+	    //(Fjsr) ? decSP :
+	    (Epsh) ? regSP :
+	    (Epop | Epek) ? _rSP :
+	    (Enwi) ? g_dti :
+	    16'hX;      
+   end
    
    // G-BUS
    assign g_wre = 1'b0;
@@ -245,21 +284,18 @@ module dcpu16_mbus (/*AUTOARG*/
 	// End of automatics
      end else if (ena) begin
 	case (pha)
-	  2'o3: g_adr <= regPC;
-	  2'o0: g_adr <= regPC;
 	  2'o1: g_adr <= ea;
 	  2'o2: g_adr <= eb;	  
-	  default: g_adr <= 16'hX;	  
+	  default: g_adr <= regPC;	  
 	endcase // case (pha)
 
 	case (pha)
-	  2'o3: g_stb <= Anwr | Anwi | Anwl;
-	  2'o0: g_stb <= Bnwr | Bnwi | Bnwl;
-	  2'o1: g_stb <= Aind | Anwr | Aspr | Anwi;
-	  2'o2: g_stb <= Bind | Bnwr | Bspr | Bnwi;	  
-	  default: g_stb <= 1'bX;	  
-	endcase // case (pha)	
-     end
+	  2'o3: g_stb <= Fnwr | Fnwi | Fnwl;
+	  2'o0: g_stb <= Fnwr | Fnwi | Fnwl;
+	  2'o1: g_stb <= Find | Fnwr | Fspr | Fnwi;
+	  2'o2: g_stb <= Find | Fnwr | Fspr | Fnwi;	  
+	endcase // case (pha)
+     end // if (ena)
    
 
    // F-BUS
@@ -286,11 +322,11 @@ module dcpu16_mbus (/*AUTOARG*/
 	endcase // case (pha)
 
 	case (pha)
-	  2'o2: _wre <= Aind | Anwr | Aspr | Anwi | Fjsr;	     
+	  2'o1: _wre <= Find | Fnwr | Fspr | Fnwi | Fjsr;	     
 	  default: _wre <= _wre;	  
 	endcase // case (pha)
 	
-     end
+     end // if (ena)
 
    always @(posedge clk)
      if (rst) begin
@@ -316,9 +352,23 @@ module dcpu16_mbus (/*AUTOARG*/
 	  default: {f_stb,f_wre} <= 2'o0;	  
 	endcase // case (pha)
 
-     end
+     end // if (ena)
    
    // REG-A/REG-B
+   reg 			_rd;   
+   always @(posedge clk)
+     if (rst) begin
+	/*AUTORESET*/
+	// Beginning of autoreset for uninitialized flops
+	_rd <= 1'h0;
+	// End of automatics
+     end else if (ena)
+       	case (pha)
+	  2'o1: _rd <= Fdir;
+	  2'o2: _rd <= Fdir;	  
+	  default: _rd <= 1'b0;	  
+	endcase // case (pha)
+
    always @(posedge clk)
      if (rst) begin
 	/*AUTORESET*/
@@ -352,7 +402,7 @@ module dcpu16_mbus (/*AUTOARG*/
 			(_rd) ? rrd :
 			regB;
 	  default: regB <= regB;	  
-	endcase // case (pha)	
-     end
+	endcase // case (pha)
+     end // if (ena)
    
-endmodule // dcpu16_abus
+endmodule // dcpu16_mbus
