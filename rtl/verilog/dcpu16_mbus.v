@@ -72,11 +72,12 @@ module dcpu16_mbus (/*AUTOARG*/
    reg			wpc;
    // End of automatics
 
+   reg 			wsp;   
    reg [15:0] 		regSP,
 			regPC;
    
    assign ena = (f_stb ~^ f_ack) & (g_stb ~^ g_ack); // pipe stall
-
+   
    // repeated decoder
    wire [5:0] 		decA, decB;
    wire [3:0] 		decO;   
@@ -147,18 +148,18 @@ module dcpu16_mbus (/*AUTOARG*/
 
    wire [5:0] 		fg = (pha[0]) ? decA : decB;   
 
-   wire 		Fdir = (fg[5:3] == 3'o0);   
-   wire 		Fnwr = (fg[5:3] == 3'o2);
-   wire 		Find = (fg[5:3] == 3'o1);
-   wire 		Frpc = (fg[5:0] == 6'h1C);
-   wire 		Fnwi = (fg[5:0] == 6'h1E);
-   wire 		Fnwl = (fg[5:0] == 6'h1F);
-   wire 		Fisp = (fg[5:0] == 6'h18);
-   wire 		Fdsp = (fg[5:0] == 6'h1A);   
-   wire 		Fspr = (fg[5:0] == 6'h18) | (fg[5:0] == 6'h19) | (fg[5:0] == 6'h1A);
+   wire 		Fdir = (fg[5:3] == 3'o0); // R
+   wire 		Find = (fg[5:3] == 3'o1); // [R]
+   wire 		Fnwr = (fg[5:3] == 3'o2); // [[PC++] + R]
+   wire 		Fspi = (fg[5:0] == 6'h18); // [SP++]
+   wire 		Fspr = (fg[5:0] == 6'h19); // [SP]
+   wire 		Fspd = (fg[5:0] == 6'h1A); // [--SP]  
+   wire 		Frsp = (fg[5:0] == 6'h1B); // SP
+   wire 		Frpc = (fg[5:0] == 6'h1C); // PC
+   wire 		Fnwi = (fg[5:0] == 6'h1E); // [PC++]
+   wire 		Fnwl = (fg[5:0] == 6'h1F); // PC++
+//   wire 		Fspr = (fg[5:0] == 6'h18) | (fg[5:0] == 6'h19) | (fg[5:0] == 6'h1A);
    
-
-   wire [15:0] 		nwr = rrd + g_dti;   // FIXME: Reduce this and combine with other ALU
    
    // PROGRAMME COUNTER - loadable binary up counter
    reg [15:0] 		rpc;
@@ -180,8 +181,8 @@ module dcpu16_mbus (/*AUTOARG*/
        	case (pha)
 	  2'o1: wpc <= Frpc & CC;
 	  default: wpc <= wpc;	  
-	endcase // case (pha)	
-     end
+	endcase // case (pha)
+     end // if (ena)
 
    always @(/*AUTOSENSE*/bra or incA or incB or pha or regB or regPC
 	    or regR or wpc) begin      
@@ -197,7 +198,7 @@ module dcpu16_mbus (/*AUTOARG*/
 	2'o1: lpc <= 1'b1;	
 	default: lpc <= 1'b0;	
       endcase // case (pha)
-   end // always (...
+   end // always @ (...
    
    // STACK POINTER - loadable binary up/down counter   
    reg [15:0] _rSP;
@@ -210,36 +211,44 @@ module dcpu16_mbus (/*AUTOARG*/
 	/*AUTORESET*/
 	// Beginning of autoreset for uninitialized flops
 	_rSP <= 16'h0;
+	wsp <= 1'h0;
 	// End of automatics
      end else if (ena) begin
 	_rSP <= regSP; // backup SP
 
-	// manipulate SP
-	if (lsp)
+	if (lsp) // manipulate SP
 	  regSP <= rsp;
 	else if (fg[1] | Fjsr)
 	  regSP <= regSP - 1;
 	else
-	  regSP <= regSP + 1;	
-     end
+	  regSP <= regSP + 1;
 
-   always @(/*AUTOSENSE*/Fdsp or Fisp or Fjsr or pha or regSP) begin
+	case (pha) // write to SP
+	  2'o1: wsp <= Frsp & CC;	  
+	  default: wsp <= wsp;	  
+	endcase // case (pha)
+     end // if (ena)
+
+   always @(/*AUTOSENSE*/Fjsr or Fspd or Fspi or pha or regR or regSP
+	    or wsp) begin
       case (pha)
-	2'o3: lsp <= ~(Fisp | Fdsp | Fjsr);	
-	2'o0: lsp <= ~(Fisp | Fdsp);	
+	2'o3: lsp <= ~(Fspi | Fspd | Fjsr);	
+	2'o0: lsp <= ~(Fspi | Fspd);
 	default: lsp <= 1'b1;	
       endcase // case (pha)
       
-      case (pha)	
+      case (pha)
+	2'o1: rsp <= (wsp) ? regR :
+		     regSP;	
 	default: rsp <= regSP;	
       endcase // case (pha)
    end // always @ (...
 
    // EA CALCULATOR
-
-   reg [15:0] ea, 
-	      eb;
-   reg [15:0] ec; // Calculated EA
+   wire [15:0] 		nwr = rrd + g_dti;   // FIXME: Reduce this and combine with other ALU
+   reg [15:0] 		ea, 
+			eb;
+   reg [15:0] 		ec; // Calculated EA
  
    always @(posedge clk)
      if (rst) begin
@@ -259,8 +268,7 @@ module dcpu16_mbus (/*AUTOARG*/
 	  default: eb <= eb;	  
 	endcase // case (pha)
      end // if (ena)
-
-   
+  
    always @(/*AUTOSENSE*/Eind or Enwi or Enwr or Epek or Epop or Epsh
 	    or _rSP or g_dti or nwr or regSP or rrd) begin
       ec <= (Eind) ? rrd :
@@ -292,8 +300,8 @@ module dcpu16_mbus (/*AUTOARG*/
 	case (pha)
 	  2'o3: g_stb <= Fnwr | Fnwi | Fnwl;
 	  2'o0: g_stb <= Fnwr | Fnwi | Fnwl;
-	  2'o1: g_stb <= Find | Fnwr | Fspr | Fnwi;
-	  2'o2: g_stb <= Find | Fnwr | Fspr | Fnwi;	  
+	  2'o1: g_stb <= Find | Fnwr | Fspr | Fspi | Fspd | Fnwi;
+	  2'o2: g_stb <= Find | Fnwr | Fspr | Fspi | Fspd | Fnwi;	  
 	endcase // case (pha)
      end // if (ena)
    
@@ -322,7 +330,7 @@ module dcpu16_mbus (/*AUTOARG*/
 	endcase // case (pha)
 
 	case (pha)
-	  2'o1: _wre <= Find | Fnwr | Fspr | Fnwi | Fjsr;	     
+	  2'o1: _wre <= Find | Fnwr | Fspr | Fspi | Fspd | Fnwi | Fjsr;	     
 	  default: _wre <= _wre;	  
 	endcase // case (pha)
 	
