@@ -143,8 +143,12 @@ module dcpu16_mbus (/*AUTOARG*/
    wire 		Epsh = (ed[5:0] == 6'h1A);
    wire 		Epop = (ed[5:0] == 6'h18);
    wire 		Epek = (ed[5:0] == 6'h19);
+   wire 		Ersp = (ed[5:0] == 6'h1B); // SP
+   wire 		Erpc = (ed[5:0] == 6'h1C); // PC
+   wire 		Erro = (ed[5:0] == 6'h1D); // O
    wire 		Enwi = (ed[5:0] == 6'h1E);   
    wire 		Espr = (ed[5:0] == 6'h18) | (ed[5:0] == 6'h19) | (ed[5:0] == 6'h1A);
+   wire 		Esht = ed[5];   
 
    wire [5:0] 		fg = (pha[0]) ? decA : decB;   
 
@@ -363,7 +367,9 @@ module dcpu16_mbus (/*AUTOARG*/
      end // if (ena)
    
    // REG-A/REG-B
-   reg 			_rd;   
+   reg 			_rd;
+   reg [15:0] 		opr;
+   
    always @(posedge clk)
      if (rst) begin
 	/*AUTORESET*/
@@ -386,12 +392,15 @@ module dcpu16_mbus (/*AUTOARG*/
 	// End of automatics
      end else if (ena) begin
 	case (pha)
+	  /*
 	  2'o0: regA <= (g_stb) ? g_dti :
-			(Arsp) ? regSP :
-			(Arpc) ? regPC :
-			(Arro) ? regO :
-			(Asht) ? {11'd0,decA[4:0]} :
+			(Ersp) ? regSP :
+			(Erpc) ? regPC :
+			(Erro) ? regO :
+			(Esht) ? {11'd0,ed[4:0]} :
 			regA;	     
+	   */
+	  2'o0: regA <= opr;	  
 	  2'o2: regA <= (g_stb) ? g_dti :
 			(Fjsr) ? regPC :
 			(_rd) ? rrd :
@@ -400,17 +409,37 @@ module dcpu16_mbus (/*AUTOARG*/
 	endcase // case (pha)
 	
 	case (pha)
+	  2'o1: regB <= opr;	  
+	  /*
+	  2'o1: regB <= (g_stb) ? g_dti :
+			(Ersp) ? regSP :
+			(Erpc) ? regPC :
+			(Erro) ? regO :
+			(Esht) ? {11'd0,ed[4:0]} :
+			regB;
+	  /*
 	  2'o1: regB <= (g_stb) ? g_dti :
 			(Brsp) ? regSP :
 			(Brpc) ? regPC :
 			(Brro) ? regO :
 			(Bsht) ? {11'd0,decB[4:0]} :
 			regB;	  
+	   */
 	  2'o3: regB <= (g_stb) ? g_dti :
 			(_rd) ? rrd :
 			regB;
 	  default: regB <= regB;	  
 	endcase // case (pha)
      end // if (ena)
+
+   always @(/*AUTOSENSE*/Erpc or Erro or Ersp or Esht or ed or g_dti
+	    or g_stb or regO or regPC or regSP) begin
+      opr <= (g_stb) ? g_dti :
+	     (Ersp) ? regSP :
+	     (Erpc) ? regPC :
+	     (Erro) ? regO :
+	     (Esht) ? {11'd0,ed[4:0]} :
+	     16'hX;
+   end
    
 endmodule // dcpu16_mbus
