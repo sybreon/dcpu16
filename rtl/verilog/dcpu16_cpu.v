@@ -37,7 +37,10 @@ Consists of the following stages:
                                FE|DE|EA|EB|LA|LB|EX|SA
  */
 
+// 775@155
+// 692@159
 // 685@160
+// 603@138
 
 module dcpu16_cpu (/*AUTOARG*/
    // Outputs

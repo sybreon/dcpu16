@@ -58,6 +58,10 @@ module dcpu16_alu (/*AUTOARG*/
    
    assign src = regA;
    assign tgt = regB;   
+
+   wire 		c;
+   wire [15:0] 		as;
+   assign 		{c,as} = (opc[0]) ? (src - tgt) : (src + tgt);   
    
    always @(posedge clk)
      if (rst) begin
@@ -68,6 +72,7 @@ module dcpu16_alu (/*AUTOARG*/
 	regR <= 16'h0;
 	// End of automatics
      end else if (ena) begin
+	if (pha == 2'o0)
 	case (opc)
 	  /* JSR */
 	  4'h0: {regO, regR} <= {regO, src};	  
@@ -81,8 +86,7 @@ module dcpu16_alu (/*AUTOARG*/
 	  // 0x4: MUL a, b - sets a to a*b, sets O to ((a*b)>>16)&0xffff
 	  // 0x5: DIV a, b - sets a to a/b, sets O to ((a<<16)/b)&0xffff. if b==0, sets a and O to 0 instead.
 	  // 0x6: MOD a, b - sets a to a%b. if b==0, sets a to 0 instead.
-	  4'h2: {regO, regR} <= src + tgt;
-	  4'h3: {regO, regR} <= src - tgt;
+	  4'h2, 4'h3: {regO, regR} <= {c,as};
 	  4'h4: {regO, regR} <= src * tgt;
 
 	  /* Shift */
@@ -97,6 +101,9 @@ module dcpu16_alu (/*AUTOARG*/
 	  4'hA: {regO, regR} <= {regO, src | tgt};
 	  4'hB: {regO, regR} <= {regO, src ^ tgt};	  
 
+	  default: {regO, regR} <= {regO, 16'hX};	  
+	endcase // case (opc)
+
 	  /* Condition */
 	  // 0xc: IFE a, b - performs next instruction only if a==b
 	  // 0xd: IFN a, b - performs next instruction only if a!=b
@@ -107,9 +114,6 @@ module dcpu16_alu (/*AUTOARG*/
 	  //4'hE: {regO, regR} <= {regO, (src > tgt)};
 	  //4'hF: {regO, regR} <= {regO, |(src & tgt)};	  
 	  
-	  default: {regO, regR} <= {regO, regR};	  
-	endcase // case (opc)
-
 	if (pha == 2'o0)
 	case (opc)
 	  4'hC: CC <= (src == tgt);
