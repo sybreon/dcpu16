@@ -1,0 +1,25 @@
+#!/bin/bash
+# Copyright (C) 2008-2011 Aeste Works (M) Sdn Bhd.
+
+RANDOM=$$
+HERE="$(dirname $0)"
+SIM="$(mktemp -d)/sim"
+DUMP="$(hostname)-$$"
+IVERLIB="-y$HERE/../rtl/verilog -y$HERE/verilog"
+
+# pre-processor
+iverilog $IVERLIB -tnull -M$SIM.ls $@ && \
+uniq $SIM.ls | sed 1d > $SIM.fs && \
+iverilog -c$SIM.fs -E -tnull -o $SIM.v $@ && \
+
+# simulation
+if [ -e "$SIM.v" ]; then
+	iverilog -Wall -o $SIM.vvp $SIM.v && \
+	$SIM.vvp +randseed=$RANDOM +dumpfile=$DUMP
+fi
+
+# recompress
+if [ -e "dump.vcd" ]; then
+	vcd2lxt dump.vcd dump.lxt -stats && \
+	rm dump.vcd
+fi
