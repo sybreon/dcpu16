@@ -41,6 +41,7 @@ Consists of the following stages:
 // 692@159
 // 685@160
 // 603@138
+// 573@138
 
 module dcpu16_cpu (/*AUTOARG*/
    // Outputs
