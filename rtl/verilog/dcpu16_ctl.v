@@ -64,6 +64,8 @@ module dcpu16_ctl (/*AUTOARG*/
 
    wire 		nop = 16'd1; // NOP = SET A, A   
    wire 		_skp = (decO == 4'h0);
+
+   wire 		Fbra = (ireg[4:0] == 5'h10);   
    
    // PHASE CALCULATOR
    always @(posedge clk)
@@ -86,7 +88,7 @@ module dcpu16_ctl (/*AUTOARG*/
 	// End of automatics
      end else if (ena) begin
 	case (pha)
-	  2'o2: ireg <= (wpc) ? nop : f_dti; // latch instruction only on PHA2
+	  2'o2: ireg <= (wpc | Fbra) ? nop : f_dti; // latch instruction only on PHA2
 	  default: ireg <= ireg;	  
 	endcase // case (pha)
 
@@ -108,7 +110,7 @@ module dcpu16_ctl (/*AUTOARG*/
 	// End of automatics
      end else if (ena) begin
 	case (pha)
-	  2'o0: {bra, _bra} <= {_bra, (ireg[5:0] == 5'h10)};	  
+	  2'o0: {bra, _bra} <= {_bra & CC, (ireg[5:0] == 5'h10)};	  
 	  default: {bra, _bra} <= {1'b0, _bra};	  
 	endcase // case (pha)
      end

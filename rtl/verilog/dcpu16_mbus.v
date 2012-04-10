@@ -92,7 +92,7 @@ module dcpu16_mbus (/*AUTOARG*/
    /*
     0x00-0x07: register (A, B, C, X, Y, Z, I or J, in that order)
     0x08-0x0f: [register]
-    0x10-0x17: [next word + register]
+`    0x10-0x17: [next word + register]
          0x18: POP / [SP++]
          0x19: PEEK / [SP]
          0x1a: PUSH / [--SP]
@@ -138,6 +138,8 @@ module dcpu16_mbus (/*AUTOARG*/
  		   
    wire 		incA = Anwr | Anwi | Anwl;
    wire 		incB = Bnwr | Bnwi | Bnwl;    
+
+   wire 		Fjsr = (ireg [5:0] == 5'h10);   
    
    // PROGRAMME COUNTER
    reg 			_rd;   
@@ -162,7 +164,9 @@ module dcpu16_mbus (/*AUTOARG*/
 	  2'o2: regPC <= _regPC; // normal PC increment due to FETCH
 	  2'o3: regPC <= (incA) ? _regPC : regPC;
 	  2'o0: regPC <= (incB) ? _regPC : regPC;
-	  2'o1: regPC <= (wpc) ? regR : regPC;
+	  2'o1: regPC <= (wpc) ? regR :
+			 (bra) ? regB :
+			 regPC;
 	  //default: regPC <= regPC;	  
 	endcase // case (pha)
 
@@ -302,7 +306,9 @@ module dcpu16_mbus (/*AUTOARG*/
      end else if (ena) begin
 
 	case (pha)
-	  2'o1: f_adr <= (wpc) ? regR : regPC;
+	  2'o1: f_adr <= (wpc) ? regR :
+			 (bra) ? regB :
+			 regPC;
 	  2'o0: f_adr <= _adr;	  
 	  default: f_adr <= 16'hX;	  
 	endcase // case (pha)
@@ -332,6 +338,7 @@ module dcpu16_mbus (/*AUTOARG*/
 			(Asht) ? {11'd0,decA[4:0]} :
 			regA;	     
 	  2'o2: regA <= (g_stb) ? g_dti :
+			(Fjsr) ? regPC :
 			(_rd) ? rrd :
 			regA;	     
 	  default: regA <= regA;
