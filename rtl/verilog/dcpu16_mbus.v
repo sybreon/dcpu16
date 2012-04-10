@@ -98,42 +98,7 @@ module dcpu16_mbus (/*AUTOARG*/
     0x20-0x3f: literal value 0x00-0x1f (literal)
     */
 
-   // decode EA  
-   wire 		Adir = (decA[5:3] == 3'o0);
-   wire 		Bdir = (decB[5:3] == 3'o0);   
-   wire 		Aind = (decA[5:3] == 3'o1);
-   wire 		Bind = (decB[5:3] == 3'o1);
-   wire 		Anwr = (decA[5:3] == 3'o2);
-   wire 		Bnwr = (decB[5:3] == 3'o2);
-
-   wire 		Apop = (decA[5:0] == 6'h18);
-   wire 		Apek = (decA[5:0] == 6'h19);
-   wire 		Apsh = (decA[5:0] == 6'h1A);
-   wire 		Bpop = (decB[5:0] == 6'h18);
-   wire 		Bpek = (decB[5:0] == 6'h19);
-   wire 		Bpsh = (decB[5:0] == 6'h1A);
-   
-   wire 		Aspr = (decA[5:0] == 6'h18) | (decA[5:0] == 6'h19) | (decA[5:0] == 6'h1A);
-   wire 		Bspr = (decB[5:0] == 6'h18) | (decB[5:0] == 6'h19) | (decB[5:0] == 6'h1A);
-   wire 		Anwi = (decA[5:0] == 6'h1E);
-   wire 		Bnwi = (decB[5:0] == 6'h1E);
-   wire 		Anwl = (decA[5:0] == 6'h1F);
-   wire 		Bnwl = (decB[5:0] == 6'h1F);   
-
-   wire 		Arsp = (decA[5:0] == 6'h1B);
-   wire 		Arpc = (decA[5:0] == 6'h1C);
-   wire 		Arro = (decA[5:0] == 6'h1D);
-   wire 		Brsp = (decB[5:0] == 6'h1B);
-   wire 		Brpc = (decB[5:0] == 6'h1C);
-   wire 		Brro = (decB[5:0] == 6'h1D);
-
-   wire 		Asht = (decA[5]);
-   wire 		Bsht = (decB[5]);
- 		   
-   wire 		incA = Anwr | Anwi | Anwl;
-   wire 		incB = Bnwr | Bnwi | Bnwl;    
-    
-   
+   // decode EA     
    wire 		Fjsr = (ireg [4:0] == 5'h10);   
 
    wire [5:0] 		ed = (pha[0]) ? decB : decA;   
@@ -188,8 +153,8 @@ module dcpu16_mbus (/*AUTOARG*/
 	endcase // case (pha)
      end // if (ena)
 
-   always @(/*AUTOSENSE*/bra or incA or incB or pha or regB or regPC
-	    or regR or wpc) begin      
+   always @(/*AUTOSENSE*/Fnwi or Fnwl or Fnwr or bra or pha or regB
+	    or regPC or regR or wpc) begin      
       case (pha)
 	2'o1: rpc <= (wpc) ? regR :
 		     (bra) ? regB :
@@ -197,8 +162,8 @@ module dcpu16_mbus (/*AUTOARG*/
 	default: rpc <= regPC;	
       endcase // case (pha)
       case (pha)
-	2'o3: lpc <= ~incA;
-	2'o0: lpc <= ~incB;
+	2'o3: lpc <= ~(Fnwr | Fnwi | Fnwl);
+	2'o0: lpc <= ~(Fnwr | Fnwi | Fnwl);
 	2'o1: lpc <= 1'b1;	
 	default: lpc <= 1'b0;	
       endcase // case (pha)
