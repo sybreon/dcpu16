@@ -15,18 +15,9 @@
  License along with this program.  If not, see
  <http://www.gnu.org/licenses/>.  */
 
-module dcpu16sim (/*AUTOARG*/
-   // Outputs
-   tgt, src, regSP, regPC
-   );
+module dcpu16sim (/*AUTOARG*/);
 
    /*AUTOOUTPUT*/
-   // Beginning of automatic outputs (from unused autoinst outputs)
-   output [15:0]	regPC;			// From ut0 of dcpu16_cpu.v
-   output [15:0]	regSP;			// From ut0 of dcpu16_cpu.v
-   output [15:0]	src;			// From ut0 of dcpu16_cpu.v
-   output [15:0]	tgt;			// From ut0 of dcpu16_cpu.v
-   // End of automatics
    /*AUTOINPUT*/
    /*AUTOWIRE*/
    // Beginning of automatic wires (for undeclared instantiated-module outputs)
@@ -65,9 +56,11 @@ module dcpu16sim (/*AUTOARG*/
 
    always #5 clk <= !clk;
 
-   always @(posedge clk) begin
-      f_ack <= f_stb & !f_ack;
-      g_ack <= g_stb & !g_ack;      
+   always @(negedge clk) begin
+      f_ack <= f_stb;
+      //& !f_ack;
+      g_ack <= g_stb;
+      //& !g_ack;      
    end
 
 
@@ -75,8 +68,8 @@ module dcpu16sim (/*AUTOARG*/
     .AW(16),
     .DW(16),
     
-    .xclk_i(clk), 
-    .clk_i(clk),
+    .xclk_i(~clk), 
+    .clk_i(~clk),
     
     .xwre_i(g_wre), 
     .xstb_i(g_stb), 
@@ -109,13 +102,13 @@ module dcpu16sim (/*AUTOARG*/
 	  .wre_i			(f_wre),		 // Templated
 	  .stb_i			(f_stb),		 // Templated
 	  .rst_i			(rst),			 // Templated
-	  .clk_i			(clk),			 // Templated
+	  .clk_i			(~clk),			 // Templated
 	  .xdat_i			(g_dto[15:0]),		 // Templated
 	  .xadr_i			(g_adr),		 // Templated
 	  .xwre_i			(g_wre),		 // Templated
 	  .xstb_i			(g_stb),		 // Templated
 	  .xrst_i			(rst),			 // Templated
-	  .xclk_i			(clk));			 // Templated
+	  .xclk_i			(~clk));			 // Templated
 
    
    dcpu16_cpu
@@ -129,10 +122,6 @@ module dcpu16sim (/*AUTOARG*/
 	  .g_dto			(g_dto[15:0]),
 	  .g_stb			(g_stb),
 	  .g_wre			(g_wre),
-	  .regPC			(regPC[15:0]),
-	  .regSP			(regSP[15:0]),
-	  .src				(src[15:0]),
-	  .tgt				(tgt[15:0]),
 	  // Inputs
 	  .clk				(clk),
 	  .f_ack			(f_ack),

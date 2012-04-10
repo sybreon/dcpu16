@@ -39,8 +39,7 @@ Consists of the following stages:
 
 module dcpu16_cpu (/*AUTOARG*/
    // Outputs
-   tgt, src, regSP, regPC, g_wre, g_stb, g_dto, g_adr, f_wre, f_stb,
-   f_dto, f_adr,
+   g_wre, g_stb, g_dto, g_adr, f_wre, f_stb, f_dto, f_adr,
    // Inputs
    rst, g_dti, g_ack, f_dti, f_ack, clk
    );
@@ -55,10 +54,6 @@ module dcpu16_cpu (/*AUTOARG*/
    output [15:0]	g_dto;			// From x0 of dcpu16_alu.v
    output		g_stb;			// From m0 of dcpu16_mbus.v
    output		g_wre;			// From m0 of dcpu16_mbus.v
-   output [15:0]	regPC;			// From m0 of dcpu16_mbus.v
-   output [15:0]	regSP;			// From m0 of dcpu16_mbus.v
-   output [15:0]	src;			// From m0 of dcpu16_mbus.v
-   output [15:0]	tgt;			// From m0 of dcpu16_mbus.v
    // End of automatics
    /*AUTOINPUT*/
    // Beginning of automatic inputs (from unused autoinst inputs)
@@ -120,12 +115,8 @@ module dcpu16_cpu (/*AUTOARG*/
 	 .f_wre				(f_wre),
 	 .ena				(ena),
 	 .wpc				(wpc),
-	 .regSP				(regSP[15:0]),
-	 .regPC				(regPC[15:0]),
 	 .regA				(regA[15:0]),
 	 .regB				(regB[15:0]),
-	 .src				(src[15:0]),
-	 .tgt				(tgt[15:0]),
 	 // Inputs
 	 .g_dti				(g_dti[15:0]),
 	 .g_ack				(g_ack),
