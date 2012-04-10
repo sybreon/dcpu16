@@ -132,7 +132,27 @@ module dcpu16_mbus (/*AUTOARG*/
    wire 		incA = Anwr | Anwi | Anwl;
    wire 		incB = Bnwr | Bnwi | Bnwl;    
 
-   wire 		Fjsr = (ireg [5:0] == 5'h10);   
+   wire 		Fjsr = (ireg [4:0] == 5'h10);   
+
+
+
+   wire [5:0] 		ed = (pha[0]) ? decB : decA;   
+
+   wire 		Eind = (ed[5:3] == 3'o1);
+   wire 		Enwr = (ed[5:3] == 3'o2);
+   wire 		Epsh = (ed[5:0] == 6'h1A);
+   wire 		Epop = (ed[5:0] == 6'h18);
+   wire 		Epek = (ed[5:0] == 6'h19);
+   wire 		Enwi = (ed[5:0] == 6'h1E);   
+   wire 		Espr = (ed[5:0] == 6'h18) | (ed[5:0] == 6'h19) | (ed[5:0] == 6'h1A);
+
+   wire [5:0] 		fg = (pha[0]) ? decA : decB;   
+   
+   wire 		Fnwr = (fg[5:3] == 3'o2);
+   wire 		Find = (fg[5:3] == 3'o1);
+   wire 		Fnwi = (fg[5:0] == 6'h1E);
+   wire 		Fnwl = (fg[5:0] == 6'h1F);
+   wire 		Fspr = (fg[5:0] == 6'h18) | (fg[5:0] == 6'h19) | (fg[5:0] == 6'h1A);
    
    // PROGRAMME COUNTER
    reg 			_rd;   
@@ -216,41 +236,16 @@ module dcpu16_mbus (/*AUTOARG*/
 	// End of automatics
      end else if (ena) begin
 	case (pha)
-	  /*
-	  2'o0: ea <= (Aind) ? rrd :
-		      (Anwr) ? nwr :
-		      (Fjsr) ? decSP :
-		      (Apsh) ? _regSP :
-		      (Apop | Apek) ? regSP :
-		      (Anwi) ? g_dti :		      
-		      ea;	  
-	   */
 	  2'o0: ea <= (Fjsr) ? decSP : ec;	  
 	  default: ea <= ea;	  
 	endcase // case (pha)
 
 	case (pha)
-	  /*
-	  2'o1: eb <= (Bind) ? rrd :
-		      (Bnwr) ? nwr :
-		      (Bpsh) ? _regSP :
-		      (Bpop | Bpek) ? regSP :
-		      (Bnwi) ? g_dti :
-		      eb;	 
-	   */
 	  2'o1: eb <= ec;	  
 	  default: eb <= eb;	  
 	endcase // case (pha)
      end
 
-   wire [5:0] ed = (pha[0]) ? decB : decA;   
-
-   wire       Eind = (ed[5:3] == 3'o1);
-   wire       Enwr = (ed[5:3] == 3'o2);
-   wire       Epsh = (ed[5:0] == 6'h1A);
-   wire       Epop = (ed[5:0] == 6'h18);
-   wire       Epek = (ed[5:0] == 6'h19);
-   wire       Enwi = (ed[5:0] == 6'h1E);   
    
    always @(/*AUTOSENSE*/Eind or Enwi or Enwr or Epek or Epop or Epsh
 	    or _regSP or g_dti or nwr or regSP or rrd) begin
@@ -275,19 +270,16 @@ module dcpu16_mbus (/*AUTOARG*/
 	// End of automatics
      end else if (ena) begin
 	case (pha)
-	  2'o3: g_adr <= regPC;
-	  2'o0: g_adr <= regPC;
 	  2'o1: g_adr <= ea;
 	  2'o2: g_adr <= eb;	  
-	  //default: g_adr <= 16'hX;	  
+	  default: g_adr <= regPC;	  
 	endcase // case (pha)
 
 	case (pha)
-	  2'o3: g_stb <= Anwr | Anwi | Anwl;
-	  2'o0: g_stb <= Bnwr | Bnwi | Bnwl;
-	  2'o1: g_stb <= Aind | Anwr | Aspr | Anwi;
-	  2'o2: g_stb <= Bind | Bnwr | Bspr | Bnwi;	  
-	  //default: g_stb <= 1'bX;	  
+	  2'o3: g_stb <= Fnwr | Fnwi | Fnwl;
+	  2'o0: g_stb <= Fnwr | Fnwi | Fnwl;
+	  2'o1: g_stb <= Find | Fnwr | Fspr | Fnwi;
+	  2'o2: g_stb <= Find | Fnwr | Fspr | Fnwi;	  
 	endcase // case (pha)	
      end
    
@@ -316,7 +308,7 @@ module dcpu16_mbus (/*AUTOARG*/
 	endcase // case (pha)
 
 	case (pha)
-	  2'o2: _wre <= Aind | Anwr | Aspr | Anwi | Fjsr;	     
+	  2'o1: _wre <= Find | Fnwr | Fspr | Fnwi | Fjsr;	     
 	  default: _wre <= _wre;	  
 	endcase // case (pha)
 	
