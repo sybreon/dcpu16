@@ -51,6 +51,11 @@ module dcpu16_alu (/*AUTOARG*/
    reg [15:0]		regR;
    // End of automatics
 
+   reg 		c;
+   reg [15:0] 	add;
+   reg [33:0] 	mul;	
+   reg [31:0] 	shl,
+		shr;   
    
    assign f_dto = regR;
    assign g_dto = regR;   
@@ -59,9 +64,14 @@ module dcpu16_alu (/*AUTOARG*/
    assign src = regA;
    assign tgt = regB;   
 
-   wire 		c;
-   wire [15:0] 		as;
-   assign 		{c,as} = (opc[0]) ? (src - tgt) : (src + tgt);   
+   // adder
+   always @(/*AUTOSENSE*/opc or src or tgt) begin
+      {c,add} <= (~opc[0]) ? (src + tgt) : (src - tgt);
+      mul <= {1'b0,src} * {1'b0,tgt};
+      shl <= src << tgt;
+      shr <= src >> tgt;      
+   end
+
    
    always @(posedge clk)
      if (rst) begin
@@ -72,28 +82,68 @@ module dcpu16_alu (/*AUTOARG*/
 	regR <= 16'h0;
 	// End of automatics
      end else if (ena) begin
+
+	// 0x1: SET a, b - sets a to b
+	// 0x2: ADD a, b - sets a to a+b, sets O to 0x0001 if there's an overflow, 0x0 otherwise
+	// 0x3: SUB a, b - sets a to a-b, sets O to 0xffff if there's an underflow, 0x0 otherwise
+	// 0x4: MUL a, b - sets a to a*b, sets O to ((a*b)>>16)&0xffff
+	// 0x5: DIV a, b - sets a to a/b, sets O to ((a<<16)/b)&0xffff. if b==0, sets a and O to 0 instead.
+	// 0x6: MOD a, b - sets a to a%b. if b==0, sets a to 0 instead.
+	// 0x7: SHL a, b - sets a to a<<b, sets O to ((a<<b)>>16)&0xffff
+	// 0x8: SHR a, b - sets a to a>>b, sets O to ((a<<16)>>b)&0xffff	 
+	// 0x9: AND a, b - sets a to a&b
+	// 0xa: BOR a, b - sets a to a|b
+	// 0xb: XOR a, b - sets a to a^b
+
+	if (pha == 2'o0)
+	  case (opc)
+	    4'h2: regO <= {15'd0,c};
+	    4'h3: regO <= {(16){c}};
+	    4'h4: regO <= mul[31:16];
+	    4'h7: regO <= shl[31:16];
+	    4'h8: regO <= shr[15:0];
+	    default: regO <= regO;	    
+	  endcase // case (opc)
+
+	if (pha == 2'o0)
+	  case (opc)
+	    4'h0: regR <= src;
+	    4'h1: regR <= tgt;
+	    4'h2: regR <= add;
+	    4'h3: regR <= add;
+	    4'h4: regR <= mul[15:0];
+	    4'h7: regR <= shl[15:0];
+	    4'h8: regR <= shr[31:16];
+	    4'h9: regR <= src & tgt;
+	    4'hA: regR <= src | tgt;
+	    4'hB: regR <= src ^ tgt;
+	    default: regR <= 16'hX;	    
+	  endcase // case (opc)	
+	
+	/*
 	if (pha == 2'o0)
 	case (opc)
-	  /* JSR */
+
 	  4'h0: {regO, regR} <= {regO, src};	  
-	  /* Assignment */
+
 	  // 0x1: SET a, b - sets a to b
 	  4'h1: {regO, regR} <= {regO, tgt};
 
-	  /* Arithmetic */
 	  // 0x2: ADD a, b - sets a to a+b, sets O to 0x0001 if there's an overflow, 0x0 otherwise
 	  // 0x3: SUB a, b - sets a to a-b, sets O to 0xffff if there's an underflow, 0x0 otherwise
 	  // 0x4: MUL a, b - sets a to a*b, sets O to ((a*b)>>16)&0xffff
 	  // 0x5: DIV a, b - sets a to a/b, sets O to ((a<<16)/b)&0xffff. if b==0, sets a and O to 0 instead.
 	  // 0x6: MOD a, b - sets a to a%b. if b==0, sets a to 0 instead.
-	  4'h2, 4'h3: {regO, regR} <= {c,as};
-	  4'h4: {regO, regR} <= src * tgt;
+	  4'h2, 4'h3: {regO, regR} <= (opc[0]) ? 
+				      {{(16){c}},as} : 
+				      {15'd0,c,as};	  
+	  4'h4: {regO, regR} <= {1'b0,src} * {1'b0,tgt}; // force 17x17 unsigned
 
-	  /* Shift */
 	  // 0x7: SHL a, b - sets a to a<<b, sets O to ((a<<b)>>16)&0xffff
 	  // 0x8: SHR a, b - sets a to a>>b, sets O to ((a<<16)>>b)&0xffff	 
-
-	  /* Logic */
+	  4'h7: {regO, regR} <= src << tgt;
+	  4'h8: {regR, regO} <= {src,16'h0} >> tgt;
+	  
 	  // 0x9: AND a, b - sets a to a&b
 	  // 0xa: BOR a, b - sets a to a|b
 	  // 0xb: XOR a, b - sets a to a^b
@@ -103,25 +153,21 @@ module dcpu16_alu (/*AUTOARG*/
 
 	  default: {regO, regR} <= {regO, 16'hX};	  
 	endcase // case (opc)
-
-	  /* Condition */
-	  // 0xc: IFE a, b - performs next instruction only if a==b
-	  // 0xd: IFN a, b - performs next instruction only if a!=b
-	  // 0xe: IFG a, b - performs next instruction only if a>b
-	  // 0xf: IFB a, b - performs next instruction only if (a&b)!=0	  	  
-	  //4'hC: {regO, regR} <= {regO, (src == tgt)};
-	  //4'hD: {regO, regR} <= {regO, (src != tgt)};
-	  //4'hE: {regO, regR} <= {regO, (src > tgt)};
-	  //4'hF: {regO, regR} <= {regO, |(src & tgt)};	  
+	 */
+	
+	// 0xc: IFE a, b - performs next instruction only if a==b
+	// 0xd: IFN a, b - performs next instruction only if a!=b
+	// 0xe: IFG a, b - performs next instruction only if a>b
+	// 0xf: IFB a, b - performs next instruction only if (a&b)!=0	  	  
 	  
 	if (pha == 2'o0)
-	case (opc)
-	  4'hC: CC <= (src == tgt);
-	  4'hD: CC <= (src != tgt);
-	  4'hE: CC <= (src > tgt);
-	  4'hF: CC <= |(src & tgt);
-	  default: CC <= 1'b1;	  
-	endcase // case (opc)
+	  case (opc)
+	    4'hC: CC <= (src == tgt);
+	    4'hD: CC <= (src != tgt);
+	    4'hE: CC <= (src > tgt);
+	    4'hF: CC <= |(src & tgt);
+	    default: CC <= 1'b1;	  
+	  endcase // case (opc)
 	
      end
    
