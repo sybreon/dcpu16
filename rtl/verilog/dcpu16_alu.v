@@ -51,6 +51,8 @@ module dcpu16_alu (/*AUTOARG*/
    reg [15:0]		regR;
    // End of automatics
 
+   reg 		c;
+   reg [15:0] 	as;
    
    assign f_dto = regR;
    assign g_dto = regR;   
@@ -59,9 +61,8 @@ module dcpu16_alu (/*AUTOARG*/
    assign src = regA;
    assign tgt = regB;   
 
-   wire 		c;
-   wire [15:0] 		as;
-   assign 		{c,as} = (opc[0]) ? (src - tgt) : (src + tgt);   
+   always @(/*AUTOSENSE*/opc or src or tgt) 
+     {c,as} <= (~opc[0]) ? (src + tgt) : (src - tgt);   
    
    always @(posedge clk)
      if (rst) begin
@@ -86,13 +87,17 @@ module dcpu16_alu (/*AUTOARG*/
 	  // 0x4: MUL a, b - sets a to a*b, sets O to ((a*b)>>16)&0xffff
 	  // 0x5: DIV a, b - sets a to a/b, sets O to ((a<<16)/b)&0xffff. if b==0, sets a and O to 0 instead.
 	  // 0x6: MOD a, b - sets a to a%b. if b==0, sets a to 0 instead.
-	  4'h2, 4'h3: {regO, regR} <= {c,as};
-	  4'h4: {regO, regR} <= src * tgt;
+	  4'h2, 4'h3: {regO, regR} <= (opc[0]) ? 
+				      {{(16){c}},as} : 
+				      {15'd0,c,as};	  
+	  4'h4: {regO, regR} <= {1'b0,src} * {1'b0,tgt}; // force 17x17 unsigned
 
 	  /* Shift */
 	  // 0x7: SHL a, b - sets a to a<<b, sets O to ((a<<b)>>16)&0xffff
 	  // 0x8: SHR a, b - sets a to a>>b, sets O to ((a<<16)>>b)&0xffff	 
-
+	  4'h7: {regO, regR} <= src << tgt;
+	  4'h8: {regR, regO} <= {src,16'h0} >> tgt;
+	  
 	  /* Logic */
 	  // 0x9: AND a, b - sets a to a&b
 	  // 0xa: BOR a, b - sets a to a|b
